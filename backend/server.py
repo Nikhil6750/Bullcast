@@ -107,6 +107,17 @@ async def run_strategy(
         raise HTTPException(500, str(exc)) from exc
 
 
+from backend.market_data import search_symbols, list_assets
+
+@app.get("/api/search")
+async def search_api(q: str = "", limit: int = 8):
+    return search_symbols(q, limit)
+
+@app.get("/api/assets")
+async def assets_api(type: str | None = None):
+    return list_assets(type)
+
+
 async def _load_uploaded_candles(file: UploadFile) -> list[dict]:
     try:
         _infer_market_pair_from_filename(file.filename)

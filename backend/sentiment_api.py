@@ -29,7 +29,7 @@ def fetch_sentiment_for_stock(stock: str):
         score = analyzer.polarity_scores(title)
         compound = score["compound"]
         
-        headlines.append({"title": title, "url": link})
+        headlines.append({"title": title, "url": link, "score": compound})
         compound_scores.append(compound)
         
     if not compound_scores:
