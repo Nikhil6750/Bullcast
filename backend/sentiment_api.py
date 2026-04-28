@@ -12,7 +12,15 @@ analyzer = SentimentIntensityAnalyzer()
 class SentimentRequest(BaseModel):
     stock: str
 
+stock_sentiment_cache = {}
+
 def fetch_sentiment_for_stock(stock: str):
+    now = datetime.now()
+    if stock in stock_sentiment_cache:
+        cached_data, timestamp = stock_sentiment_cache[stock]
+        if now - timestamp < timedelta(minutes=15):
+            return cached_data
+
     query = f"{stock} stock"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
@@ -29,11 +37,18 @@ def fetch_sentiment_for_stock(stock: str):
         score = analyzer.polarity_scores(title)
         compound = score["compound"]
         
-        headlines.append({"title": title, "url": link, "score": compound})
+        if compound > 0.2:
+            label = "POSITIVE"
+        elif compound < -0.2:
+            label = "NEGATIVE"
+        else:
+            label = "NEUTRAL"
+            
+        headlines.append({"title": title, "url": link, "score": compound, "compound_score": compound, "label": label})
         compound_scores.append(compound)
         
     if not compound_scores:
-        return {
+        result = {
             "stock": stock,
             "sentiment": "NEUTRAL",
             "score": 50,
@@ -43,6 +58,8 @@ def fetch_sentiment_for_stock(stock: str):
             "headlines": [],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
+        stock_sentiment_cache[stock] = (result, now)
+        return result
         
     avg_compound = sum(compound_scores) / len(compound_scores)
     
@@ -62,7 +79,7 @@ def fetch_sentiment_for_stock(stock: str):
     
     total = len(compound_scores)
     
-    return {
+    result = {
         "stock": stock,
         "sentiment": sentiment,
         "score": score_out_of_100,
@@ -72,6 +89,9 @@ def fetch_sentiment_for_stock(stock: str):
         "headlines": headlines,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
+    
+    stock_sentiment_cache[stock] = (result, now)
+    return result
 
 @router.post("/api/sentiment")
 def get_sentiment(request: SentimentRequest):
