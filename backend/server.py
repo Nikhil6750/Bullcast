@@ -34,6 +34,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from backend.sentiment_api import router as sentiment_router
+app.include_router(sentiment_router)
+
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(_request: Request, exc: RequestValidationError):

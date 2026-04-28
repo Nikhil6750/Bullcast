@@ -2,3 +2,6 @@ numpy
 pandas
 python-dotenv
 pytest
+feedparser>=6.0.10
+requests==2.31.0
+vaderSentiment
