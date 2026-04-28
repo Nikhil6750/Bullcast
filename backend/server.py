@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -8,18 +9,18 @@ import tempfile
 from pathlib import Path
 from typing import Final
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-# Ensure repository root is importable (for `bot.*`)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from backend.data_loader import CandleCSVError, load_candles_from_csv_path
 from backend.gap_handling import generate_trades_and_setups_with_gap_resets
+from backend.strategy_lab import StrategyLabError, run_strategy_lab
 
 _INVALID_FILENAME_MSG: Final[str] = "Invalid CSV filename format"
 _PAIR_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9]+$")
@@ -61,8 +62,51 @@ def health() -> dict:
 
 @app.post("/run-backtest")
 async def run_backtest(file: UploadFile = File(...)):
+    candles = await _load_uploaded_candles(file)
+
     try:
-        market, pair = _infer_market_pair_from_filename(file.filename)
+        trades, setups = generate_trades_and_setups_with_gap_resets(candles)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+    return {"candles": candles, "setups": setups, "trades": trades}
+
+
+@app.post("/run-strategy")
+async def run_strategy(
+    file: UploadFile = File(...),
+    strategy_type: str = Form(...),
+    parameters_json: str = Form("{}"),
+    pine_script: str = Form(""),
+):
+    candles = await _load_uploaded_candles(file)
+
+    try:
+        parameters = json.loads(parameters_json or "{}")
+    except Exception as exc:
+        raise HTTPException(400, "Invalid parameters JSON.") from exc
+
+    if not isinstance(parameters, dict):
+        raise HTTPException(400, "parameters_json must decode to an object.")
+
+    try:
+        return run_strategy_lab(
+            candles,
+            strategy_type=strategy_type,
+            parameters=parameters,
+            pine_script=pine_script,
+        )
+    except StrategyLabError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(500, str(exc)) from exc
+
+
+async def _load_uploaded_candles(file: UploadFile) -> list[dict]:
+    try:
+        _infer_market_pair_from_filename(file.filename)
     except ValueError:
         raise HTTPException(400, _INVALID_FILENAME_MSG)
 
@@ -75,20 +119,13 @@ async def run_backtest(file: UploadFile = File(...)):
                 shutil.copyfileobj(file.file, out)
             if csv_path.stat().st_size <= 0:
                 raise HTTPException(400, "Empty CSV")
-            candles = load_candles_from_csv_path(csv_path)
-    except CandleCSVError as e:
-        raise HTTPException(400, str(e))
+            return load_candles_from_csv_path(csv_path)
+    except CandleCSVError as exc:
+        raise HTTPException(400, str(exc)) from exc
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-    try:
-        trades, setups = generate_trades_and_setups_with_gap_resets(candles)
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-    return {"candles": candles, "setups": setups, "trades": trades}
+    except Exception as exc:
+        raise HTTPException(500, str(exc)) from exc
 
 
 def _infer_market_pair_from_filename(filename: str | None) -> tuple[str, str]:
