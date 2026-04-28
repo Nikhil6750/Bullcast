@@ -107,7 +107,7 @@ async def run_strategy(
         raise HTTPException(500, str(exc)) from exc
 
 
-from backend.market_data import search_symbols, list_assets
+from backend.market_data import search_symbols, list_assets, fetch_ohlcv, fetch_quote
 
 @app.get("/api/search")
 async def search_api(q: str = "", limit: int = 8):
@@ -116,6 +116,14 @@ async def search_api(q: str = "", limit: int = 8):
 @app.get("/api/assets")
 async def assets_api(type: str | None = None):
     return list_assets(type)
+
+@app.get("/api/history")
+async def history_api(symbol: str, period: str = "1y", interval: str = "1d"):
+    return fetch_ohlcv(symbol, period, interval)
+
+@app.get("/api/quote")
+async def quote_api(symbol: str):
+    return fetch_quote(symbol)
 
 
 async def _load_uploaded_candles(file: UploadFile) -> list[dict]:
