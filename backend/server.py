@@ -108,6 +108,20 @@ async def run_strategy(
 
 
 from backend.market_data import search_symbols, list_assets, fetch_ohlcv, fetch_quote
+from backend.backtesting import run_backtest
+from pydantic import BaseModel
+
+class BacktestRequest(BaseModel):
+    symbol: str
+    strategy: str
+    period: str = "1y"
+    interval: str = "1d"
+    initial_capital: float = 100000.0
+    commission: float = 0.001
+    slippage: float = 0.0005
+    sentiment_score: int | None = None
+
+VALID_STRATEGIES = ["sma_cross", "rsi", "macd", "bollinger", "sentiment_sma"]
 
 @app.get("/api/search")
 async def search_api(q: str = "", limit: int = 8):
@@ -124,6 +138,30 @@ async def history_api(symbol: str, period: str = "1y", interval: str = "1d"):
 @app.get("/api/quote")
 async def quote_api(symbol: str):
     return fetch_quote(symbol)
+
+@app.post("/api/backtest")
+async def api_run_backtest(req: BacktestRequest):
+    if req.strategy not in VALID_STRATEGIES:
+        raise HTTPException(status_code=400, detail=f"Invalid strategy: {req.strategy}")
+        
+    try:
+        records = fetch_ohlcv(req.symbol, period=req.period, interval=req.interval)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Market data error: {str(e)}")
+        
+    try:
+        result = run_backtest(
+            df_records=records,
+            strategy=req.strategy,
+            initial_capital=req.initial_capital,
+            commission=req.commission,
+            slippage=req.slippage
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Engine failure: {str(e)}")
 
 
 async def _load_uploaded_candles(file: UploadFile) -> list[dict]:

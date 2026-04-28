@@ -130,7 +130,7 @@ def run_backtest(df_records: list[dict], strategy: str, initial_capital: float =
     metrics = calculate_metrics(trades, equity_curve, initial_capital)
     
     # Replace nan with None for JSON serialization
-    df = df.replace({np.nan: None})
+    df = df.fillna(0)
     chart_data = df.to_dict(orient="records")
     
     # Only return specific signal series to avoid huge response payload

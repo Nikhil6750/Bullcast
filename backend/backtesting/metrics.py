@@ -59,26 +59,31 @@ def calculate_metrics(trades: list[dict], equity_curve: list[dict], initial_capi
         
     # Calmar (Annualized Return / Max Drawdown)
     days = len(eq_df)
-    if days > 0 and max_drawdown > 0:
+    if days > 0 and max_drawdown > 0 and final_capital > 0:
         ann_return = ((final_capital / initial_capital) ** (252 / days)) - 1
         calmar_ratio = (ann_return * 100) / max_drawdown
     else:
         calmar_ratio = 0.0
         
+    def _clean(val):
+        if pd.isna(val) or val == float('inf') or val == float('-inf'):
+            return 0.0
+        return float(val)
+
     return {
-        "total_trades": total_trades,
-        "winning_trades": winning_trades,
-        "losing_trades": losing_trades,
-        "win_rate": round(win_rate, 2),
-        "total_pnl": round(total_pnl, 2),
-        "return_pct": round(return_pct, 2),
-        "final_capital": round(final_capital, 2),
-        "initial_capital": initial_capital,
-        "avg_win": round(avg_win, 2),
-        "avg_loss": round(avg_loss, 2),
-        "profit_factor": round(profit_factor, 2) if profit_factor != float('inf') else 999.9,
-        "max_drawdown": round(max_drawdown, 2),
-        "sharpe_ratio": round(sharpe_ratio, 2),
-        "sortino_ratio": round(sortino_ratio, 2),
-        "calmar_ratio": round(calmar_ratio, 2)
+        "total_trades": int(total_trades),
+        "winning_trades": int(winning_trades),
+        "losing_trades": int(losing_trades),
+        "win_rate": _clean(round(win_rate, 2)),
+        "total_pnl": _clean(round(total_pnl, 2)),
+        "return_pct": _clean(round(return_pct, 2)),
+        "final_capital": _clean(round(final_capital, 2)),
+        "initial_capital": _clean(initial_capital),
+        "avg_win": _clean(round(avg_win, 2)),
+        "avg_loss": _clean(round(avg_loss, 2)),
+        "profit_factor": _clean(round(profit_factor, 2)),
+        "max_drawdown": _clean(round(max_drawdown, 2)),
+        "sharpe_ratio": _clean(round(sharpe_ratio, 2)),
+        "sortino_ratio": _clean(round(sortino_ratio, 2)),
+        "calmar_ratio": _clean(round(calmar_ratio, 2))
     }
