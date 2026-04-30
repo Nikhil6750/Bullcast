@@ -14,6 +14,42 @@ class SentimentRequest(BaseModel):
 
 stock_sentiment_cache = {}
 
+# Mapping of common NSE symbols to company names for better Google News results
+SYMBOL_TO_COMPANY = {
+    "RELIANCE": "Reliance Industries",
+    "TCS": "Tata Consultancy Services",
+    "INFY": "Infosys",
+    "HDFCBANK": "HDFC Bank",
+    "ICICIBANK": "ICICI Bank",
+    "SBIN": "State Bank of India",
+    "WIPRO": "Wipro",
+    "BAJFINANCE": "Bajaj Finance",
+    "AXISBANK": "Axis Bank",
+    "KOTAKBANK": "Kotak Mahindra Bank",
+    "HINDUNILVR": "Hindustan Unilever",
+    "TATAMOTORS": "Tata Motors",
+    "MARUTI": "Maruti Suzuki",
+    "SUNPHARMA": "Sun Pharmaceutical",
+    "ONGC": "Oil and Natural Gas Corporation",
+    "NTPC": "NTPC",
+    "POWERGRID": "Power Grid Corporation of India",
+    "ULTRACEMCO": "UltraTech Cement",
+    "TITAN": "Titan Company",
+    "ADANIENT": "Adani Enterprises",
+}
+
+def _normalize_stock(raw: str) -> tuple[str, str, str]:
+    """Return (clean_symbol, company_name, search_query) from a raw input like 'RELIANCE.NS'."""
+    clean = raw.strip().upper()
+    # Strip yfinance suffixes
+    for suffix in (".NS", ".BO"):
+        if clean.endswith(suffix):
+            clean = clean[: -len(suffix)]
+            break
+    company = SYMBOL_TO_COMPANY.get(clean, "")
+    search_term = company if company else clean
+    return clean, company, f"{search_term} stock"
+
 def fetch_sentiment_for_stock(stock: str):
     now = datetime.now()
     if stock in stock_sentiment_cache:
@@ -21,7 +57,8 @@ def fetch_sentiment_for_stock(stock: str):
         if now - timestamp < timedelta(minutes=15):
             return cached_data
 
-    query = f"{stock} stock"
+    display_symbol, company_name, query = _normalize_stock(stock)
+
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
     
@@ -50,6 +87,9 @@ def fetch_sentiment_for_stock(stock: str):
     if not compound_scores:
         result = {
             "stock": stock,
+            "display_symbol": display_symbol,
+            "company_name": company_name,
+            "query_used": query,
             "sentiment": "NEUTRAL",
             "score": 50,
             "positive_pct": 0,
@@ -81,6 +121,9 @@ def fetch_sentiment_for_stock(stock: str):
     
     result = {
         "stock": stock,
+        "display_symbol": display_symbol,
+        "company_name": company_name,
+        "query_used": query,
         "sentiment": sentiment,
         "score": score_out_of_100,
         "positive_pct": int((positive_count / total) * 100),

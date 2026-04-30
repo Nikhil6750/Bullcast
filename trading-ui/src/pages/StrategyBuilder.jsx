@@ -3,6 +3,7 @@ import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import ForexChart from "../components/ForexChart";
 import PerformanceMetrics from "../components/PerformanceMetrics";
 import SetupsVirtualList from "../components/SetupsVirtualList";
+import SymbolBacktest from "../components/SymbolBacktest";
 import { BASE_URL } from "../lib/api";
 
 const STRATEGY_OPTIONS = [
@@ -225,6 +226,7 @@ function DetailRow({ label, value, tone }) {
 }
 
 function StrategyBuilder() {
+  const [mode, setMode] = useState("symbol");
   const [csvFile, setCsvFile] = useState(null);
   const [strategyType, setStrategyType] = useState("moving_average");
   const [strategyParameters, setStrategyParameters] = useState(DEFAULT_PARAMETERS);
@@ -314,7 +316,14 @@ function StrategyBuilder() {
   return (
     <div className="min-h-screen px-3 py-3 sm:px-4 sm:py-4">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3">
-        <div className="glass-panel px-4 py-4 sm:px-5">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <button className={`tab-button ${mode === "symbol" ? "tab-button-active" : ""}`} onClick={() => setMode("symbol")}>Symbol Engine</button>
+          <button className={`tab-button ${mode === "csv" ? "tab-button-active" : ""}`} onClick={() => setMode("csv")}>Legacy CSV Upload</button>
+        </div>
+
+        {mode === "csv" ? (
+          <>
+            <div className="glass-panel px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--color-text-secondary)]">
@@ -585,6 +594,10 @@ function StrategyBuilder() {
             )}
           </div>
         </div>
+        </>
+        ) : (
+          <SymbolBacktest />
+        )}
       </div>
     </div>
   );

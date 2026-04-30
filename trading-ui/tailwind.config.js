@@ -4,16 +4,30 @@ export default {
   theme: { 
     extend: {
       colors: {
-        background: '#0a0a0f',
-        card: '#12121a',
-        border: '#1e1e2e',
-        primary: '#6c63ff',
-        bullish: '#00d26a',
-        bearish: '#ff4d4d',
-        neutral: '#888899',
+        background: '#060608',
+        card: '#0c0c14',
+        cardAlt: '#0e0e1a',
+        border: '#1a1a28',
+        primary: '#C8F135',
+        bullish: '#00FF87',
+        bearish: '#FF3B3B',
+        muted: '#333344',
+        ghost: '#1a1a28',
       },
       fontFamily: {
+        display: ['Bebas Neue', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
         sans: ['Inter', 'sans-serif'],
+      },
+      keyframes: {
+        ticker: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' }
+        },
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
+        }
       }
     } 
   },
