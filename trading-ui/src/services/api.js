@@ -51,6 +51,77 @@ export const runBacktest = (params) =>
     body: JSON.stringify(params)
   })
 
-/** Get all available strategies */
-export const getStrategies = () =>
-  _request("/api/strategies")
+/** Get all available strategies (local fallback - backend route not yet built) */
+export const getStrategies = async () => ({
+  strategies: {
+    sma_cross: {
+      name: "SMA Crossover",
+      description: "Buy when 10-day MA crosses above 30-day MA. Sell when it crosses below.",
+      best_for: "Trending markets",
+      difficulty: "Beginner",
+      params: { short: 10, long: 30 }
+    },
+    rsi: {
+      name: "RSI Reversal",
+      description: "Buy when RSI drops below 30 (oversold) and recovers. Sell when RSI rises above 70.",
+      best_for: "Range-bound markets",
+      difficulty: "Beginner",
+      params: { period: 14, oversold: 30, overbought: 70 }
+    },
+    macd: {
+      name: "MACD Momentum",
+      description: "Buy when MACD line crosses above signal line. Sell when it crosses below.",
+      best_for: "Momentum markets",
+      difficulty: "Intermediate",
+      params: { fast: 12, slow: 26, signal: 9 }
+    },
+    bollinger: {
+      name: "Bollinger Bounce",
+      description: "Buy when price bounces off lower band. Sell when price touches upper band.",
+      best_for: "Mean-reversion markets",
+      difficulty: "Intermediate",
+      params: { period: 20, std: 2 }
+    },
+    sentiment_sma: {
+      name: "Sentiment + SMA",
+      description: "SMA crossover filtered by live news sentiment. Only buys when market mood is positive.",
+      best_for: "News-driven markets",
+      difficulty: "Advanced",
+      params: { short: 10, long: 30, min_sentiment: 60 }
+    }
+  }
+})
+
+/** Ticker tape live prices */
+export const getTickerData = () => _request('/api/ticker')
+
+/** Market overview - categorized live prices */
+export const getMarketOverview = () => _request('/api/market-overview')
+
+// Trade Intelligence Engine
+export const analyzeJournal = (trades) =>
+  _request('/api/intelligence/analyze', {
+    method: 'POST',
+    body: JSON.stringify({ trades })
+  })
+
+export const askIntelligence = (trades, question) =>
+  _request('/api/intelligence/ask', {
+    method: 'POST',
+    body: JSON.stringify({ trades, question })
+  })
+
+export const exportTradeDataset = (trades, options = {}) =>
+  _request('/api/datasets/trade-export', {
+    method: 'POST',
+    body: JSON.stringify({
+      trades,
+      include_edgar: options?.include_edgar ?? false
+    })
+  })
+
+export const getTrainingReport = () =>
+  _request('/api/ml/training-report')
+
+export const getEdgarContext = (ticker) =>
+  _request(`/api/edgar/context/${encodeURIComponent(ticker)}`)
