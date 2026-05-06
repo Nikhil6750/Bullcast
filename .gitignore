@@ -23,3 +23,4 @@ journal_trades.json
 journal_trades_synthetic_forex_35.json
 backend/models/
 data/edgar_cache/
+dev_data/
