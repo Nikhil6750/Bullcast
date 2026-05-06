@@ -170,7 +170,7 @@ def _build_pipeline(
                 "categorical",
                 Pipeline(
                     steps=[
-                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("clean", _CategoricalCleaner()),
                         ("onehot", OneHotEncoder(handle_unknown="ignore")),
                     ]
                 ),
@@ -224,6 +224,24 @@ def _build_pipeline(
             ),
         ]
     )
+
+
+class _CategoricalCleaner(BaseEstimator, TransformerMixin):
+    missing_token = "__missing__"
+
+    def fit(self, x: Any, y: Any = None) -> "_CategoricalCleaner":
+        return self
+
+    def transform(self, x: Any) -> pd.DataFrame:
+        if hasattr(x, "copy") and hasattr(x, "columns"):
+            frame = x.copy()
+        else:
+            frame = pd.DataFrame(x)
+
+        frame = frame.astype("object")
+        frame = frame.where(pd.notna(frame), self.missing_token)
+        frame = frame.replace("", self.missing_token)
+        return frame.astype(str)
 
 
 class _TextColumnFlattener(BaseEstimator, TransformerMixin):

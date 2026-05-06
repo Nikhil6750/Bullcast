@@ -17,3 +17,9 @@ output/
 Thumbs.db
 .agent/
 AlgoTradeX/
+
+# Bullcast local ML/data artifacts
+journal_trades.json
+journal_trades_synthetic_forex_35.json
+backend/models/
+data/edgar_cache/
