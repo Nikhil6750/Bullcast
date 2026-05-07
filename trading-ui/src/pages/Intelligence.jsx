@@ -124,6 +124,49 @@ function formatReportBoolean(value) {
   return '-'
 }
 
+function hasFieldValue(value) {
+  return value !== null && value !== undefined && value !== ''
+}
+
+function isSyntheticTrade(trade) {
+  if (trade?.synthetic_flag === true || String(trade?.synthetic_flag || '').trim().toLowerCase() === 'true') {
+    return true
+  }
+  if (String(trade?.source_type || '').trim().toLowerCase() === 'synthetic_dev') {
+    return true
+  }
+  return String(trade?.id || '').trim().toUpperCase().startsWith('SYN-')
+}
+
+function coveragePercent(rows, key) {
+  if (!rows.length) return 0
+  const covered = rows.filter((row) => hasFieldValue(row?.[key])).length
+  return Math.round((covered / rows.length) * 1000) / 10
+}
+
+function getRealJournalStats(trades) {
+  const safeTrades = Array.isArray(trades) ? trades : []
+  const syntheticRows = safeTrades.filter(isSyntheticTrade)
+  const realRows = safeTrades.filter((trade) => !isSyntheticTrade(trade))
+  const realAssetClasses = new Set(realRows.map((trade) => trade.asset_type).filter(Boolean))
+
+  return {
+    totalTrades: safeTrades.length,
+    realTrades: realRows.length,
+    syntheticTrades: syntheticRows.length,
+    winCount: safeTrades.filter((trade) => trade.result === 'WIN').length,
+    lossCount: safeTrades.filter((trade) => trade.result === 'LOSS').length,
+    realWins: realRows.filter((trade) => trade.result === 'WIN').length,
+    realLosses: realRows.filter((trade) => trade.result === 'LOSS').length,
+    realAssetClassCount: realAssetClasses.size,
+    setupTagCoverage: coveragePercent(realRows, 'setup_tag'),
+    plannedRiskCoverage: coveragePercent(realRows, 'planned_risk'),
+    plannedRewardCoverage: coveragePercent(realRows, 'planned_reward'),
+    ruleFollowedCoverage: coveragePercent(realRows, 'rule_followed'),
+    confidenceScoreCoverage: coveragePercent(realRows, 'confidence_score'),
+  }
+}
+
 function datasetDateStamp() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -1072,6 +1115,239 @@ function DataOriginStatusBadge({ status }) {
   )
 }
 
+function RealDataCollectionPlan({ trades }) {
+  const stats = getRealJournalStats(trades)
+  const checklist = [
+    ['One asset class selected', stats.realTrades > 0 && stats.realAssetClassCount === 1],
+    ['Both wins and losses recorded', stats.realWins > 0 && stats.realLosses > 0],
+    ['Planned risk/reward filled', stats.realTrades > 0 && stats.plannedRiskCoverage === 100 && stats.plannedRewardCoverage === 100],
+    ['Rule-followed filled', stats.realTrades > 0 && stats.ruleFollowedCoverage === 100],
+    ['30+ real trades collected', stats.realTrades >= 30],
+    ['100+ real trades collected', stats.realTrades >= 100],
+  ]
+
+  const requiredFields = [
+    'setup_tag',
+    'planned_risk',
+    'planned_reward',
+    'rule_followed',
+    'confidence_score',
+    'entry_reason',
+    'result',
+    'mistake_tag for losses',
+  ]
+
+  const collectionRules = [
+    'Use one asset class first',
+    'Include both WIN and LOSS trades',
+    'Write entry_reason before or at entry',
+    'Do not mix synthetic and real data for real training',
+    'Do not treat synthetic metrics as model performance',
+  ]
+
+  return (
+    <section
+      style={{
+        background: '#0c0c14',
+        border: '1px solid rgba(200,241,53,0.08)',
+        borderRadius: 4,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(200,241,53,0.06)',
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.65rem',
+            color: '#C8F135',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}
+        >
+          Real Data Collection Plan
+        </p>
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.68rem',
+            color: '#888899',
+            margin: '6px 0 0',
+            lineHeight: 1.5,
+          }}
+        >
+          Synthetic pipeline validated. Real model training requires real journal history.
+        </p>
+      </div>
+
+      <div style={{ padding: '18px 20px', display: 'grid', gap: 16 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(135px,1fr))',
+            gap: 10,
+          }}
+        >
+          <DatasetMetric label="Local Trades" value={stats.totalTrades} />
+          <DatasetMetric label="Real Trades" value={stats.realTrades} />
+          <DatasetMetric label="Synthetic Trades" value={stats.syntheticTrades} />
+          <DatasetMetric label="WIN Count" value={stats.winCount} />
+          <DatasetMetric label="LOSS Count" value={stats.lossCount} />
+          <DatasetMetric label="Setup Coverage" value={formatCoverage(stats.setupTagCoverage)} />
+          <DatasetMetric label="Risk Coverage" value={formatCoverage(stats.plannedRiskCoverage)} />
+          <DatasetMetric label="Reward Coverage" value={formatCoverage(stats.plannedRewardCoverage)} />
+          <DatasetMetric label="Rule Coverage" value={formatCoverage(stats.ruleFollowedCoverage)} />
+          <DatasetMetric label="Confidence Coverage" value={formatCoverage(stats.confidenceScoreCoverage)} />
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))',
+            gap: 12,
+          }}
+        >
+          <RealDataPlanBlock title="Real-Data Targets">
+            <PlanLine label="30 real trades" value="readiness smoke test" />
+            <PlanLine label="100+ real trades" value="first useful baseline" />
+            <PlanLine label="200+ real trades" value="stronger validation" />
+          </RealDataPlanBlock>
+
+          <RealDataPlanBlock title="Required Fields">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {requiredFields.map((field) => (
+                <span
+                  key={field}
+                  style={{
+                    padding: '4px 7px',
+                    borderRadius: 3,
+                    border: '1px solid rgba(200,241,53,0.12)',
+                    color: '#888899',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.58rem',
+                  }}
+                >
+                  {field}
+                </span>
+              ))}
+            </div>
+          </RealDataPlanBlock>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))',
+            gap: 12,
+          }}
+        >
+          <RealDataPlanBlock title="Best Collection Rules">
+            <div style={{ display: 'grid', gap: 8 }}>
+              {collectionRules.map((rule) => (
+                <div
+                  key={rule}
+                  style={{
+                    color: '#888899',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.68rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {rule}
+                </div>
+              ))}
+            </div>
+          </RealDataPlanBlock>
+
+          <RealDataPlanBlock title="Checklist">
+            <div style={{ display: 'grid', gap: 7 }}>
+              {checklist.map(([label, complete]) => (
+                <div
+                  key={label}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    color: complete ? '#C8F135' : '#555566',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.68rem',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      border: `1px solid ${complete ? '#C8F135' : 'rgba(255,255,255,0.14)'}`,
+                      background: complete ? '#C8F135' : 'transparent',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {label}
+                </div>
+              ))}
+            </div>
+          </RealDataPlanBlock>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RealDataPlanBlock({ title, children }) {
+  return (
+    <div
+      style={{
+        background: '#060608',
+        border: '1px solid rgba(200,241,53,0.08)',
+        borderRadius: 4,
+        padding: '12px 14px',
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.58rem',
+          color: '#C8F135',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+        }}
+      >
+        {title}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function PlanLine({ label, value }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '7px 0',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '0.68rem',
+        lineHeight: 1.4,
+      }}
+    >
+      <span style={{ color: '#f5f5f7' }}>{label}</span>
+      <span style={{ color: '#888899', textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
 function DatasetMetric({ label, value }) {
   return (
     <div
@@ -1822,6 +2098,7 @@ export default function Intelligence() {
       {trades.length === 0 && (
         <div style={{ maxWidth: 760, marginTop: 20, display: 'grid', gap: 20 }}>
           <DatasetReadinessPanel trades={trades} />
+          <RealDataCollectionPlan trades={trades} />
           <TrainingReportPanel />
           <EdgarDiagnosticsPanel />
         </div>
@@ -2189,6 +2466,7 @@ export default function Intelligence() {
             )}
 
             <DatasetReadinessPanel trades={trades} />
+            <RealDataCollectionPlan trades={trades} />
             <TrainingReportPanel />
             <EdgarDiagnosticsPanel />
           </div>
