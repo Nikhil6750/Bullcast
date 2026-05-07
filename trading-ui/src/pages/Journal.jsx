@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
+import { exportTradeDataset } from "../services/api";
 
 const STORAGE_KEY = "bullcast_journal_v1";
 
@@ -756,6 +757,8 @@ export default function Journal() {
   const [importing, setImporting] = useState(false);
   const [importSummary, setImportSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
+  const [mlDatasetExporting, setMlDatasetExporting] = useState(false);
+  const [mlDatasetExportSummary, setMlDatasetExportSummary] = useState(null);
   const importInputRef = useRef(null);
 
   useEffect(() => { saveTrades(trades); }, [trades]);
@@ -858,6 +861,77 @@ export default function Journal() {
     downloadJSON(realTrades, `bullcast_real_journal_trades_${dateStamp()}.json`);
   }, []);
 
+  const exportMlDatasetJSON = useCallback(async () => {
+    const localTrades = loadRawStoredTrades();
+    const { realTrades, syntheticTrades } = splitRealAndSyntheticTrades(localTrades);
+
+    setMlDatasetExportSummary(null);
+
+    if (realTrades.length === 0) {
+      setMlDatasetExportSummary({
+        totalLocalTrades: localTrades.length,
+        realTradesSent: 0,
+        syntheticTradesExcluded: syntheticTrades.length,
+        readinessLevel: "-",
+        readyForTraining: "-",
+        score: "-",
+        downloaded: false,
+        error: "",
+        messages: ["No real trades found. ML dataset export requires real/paper journal trades."],
+      });
+      return;
+    }
+
+    setMlDatasetExporting(true);
+
+    try {
+      const dataset = await exportTradeDataset(realTrades, { include_edgar: false });
+      const qualityGate = dataset?.quality_gate && typeof dataset.quality_gate === "object" ? dataset.quality_gate : {};
+      const readinessLevel = String(qualityGate.readiness_level || "-");
+      const readyForTraining = qualityGate.ready_for_training === true;
+      const readyForReview = ["baseline_ready", "strong_ready"].includes(readinessLevel);
+
+      downloadJSON(
+        dataset,
+        `bullcast_real_ml_dataset_${dateStamp()}.json`
+      );
+
+      setMlDatasetExportSummary({
+        totalLocalTrades: localTrades.length,
+        realTradesSent: realTrades.length,
+        syntheticTradesExcluded: syntheticTrades.length,
+        readinessLevel,
+        readyForTraining,
+        score: qualityGate.score ?? "-",
+        downloaded: true,
+        error: "",
+        messages: [
+          readyForReview
+            ? "Dataset is ready for cautious baseline training review."
+            : "Dataset exported, but training should remain blocked until the quality gate passes.",
+          "This exports a dataset for ML readiness review only. It does not train a model.",
+        ],
+      });
+    } catch (error) {
+      setMlDatasetExportSummary({
+        totalLocalTrades: localTrades.length,
+        realTradesSent: realTrades.length,
+        syntheticTradesExcluded: syntheticTrades.length,
+        readinessLevel: "-",
+        readyForTraining: "-",
+        score: "-",
+        downloaded: false,
+        error: String(error?.message || error || "ML dataset export failed."),
+        messages: [
+          String(error?.message || error || "ML dataset export failed."),
+          "This exports a dataset for ML readiness review only. It does not train a model.",
+        ],
+      });
+    } finally {
+      setMlDatasetExporting(false);
+    }
+  }, []);
+
   const toggleSort = (col) => {
     if (sortCol === col) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -958,6 +1032,18 @@ export default function Journal() {
           >
             Export Real Trades JSON
           </button>
+          <button onClick={exportMlDatasetJSON}
+            disabled={mlDatasetExporting}
+            style={{
+              padding: "10px 18px", borderRadius: 4, cursor: mlDatasetExporting ? "not-allowed" : "pointer",
+              background: "rgba(200,241,53,0.08)", border: "1px solid rgba(200,241,53,0.28)",
+              color: mlDatasetExporting ? "#555566" : "#C8F135", fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.72rem", letterSpacing: "0.06em", transition: "all 0.15s",
+              opacity: mlDatasetExporting ? 0.65 : 1,
+            }}
+          >
+            {mlDatasetExporting ? "Exporting..." : "Export ML Dataset JSON"}
+          </button>
           <button onClick={() => { setEditingTrade(null); setShowModal(true); }}
             style={{
               padding: "10px 22px", borderRadius: 4, cursor: "pointer",
@@ -983,6 +1069,7 @@ export default function Journal() {
         lineHeight: 1.5,
       }}>
         Real training should use only real/paper journal trades. Synthetic rows are for development pipeline testing only.
+        {" "}This exports a dataset for ML readiness review only. It does not train a model.
       </div>
 
       {importSummary && (
@@ -1011,6 +1098,22 @@ export default function Journal() {
             ["Real Trades Exported", realExportSummary.realTradesExported],
             ["Synthetic Excluded", realExportSummary.syntheticTradesExcluded],
           ]}
+        />
+      )}
+
+      {mlDatasetExportSummary && (
+        <JournalActionSummary
+          tone={mlDatasetExportSummary.error ? "error" : mlDatasetExportSummary.downloaded ? "success" : "warning"}
+          title={mlDatasetExportSummary.error ? "ML Dataset Export Failed" : mlDatasetExportSummary.downloaded ? "ML Dataset Export Summary" : "No real trades found. ML dataset export requires real/paper journal trades."}
+          metrics={[
+            ["Total Local Trades", mlDatasetExportSummary.totalLocalTrades],
+            ["Real Trades Sent", mlDatasetExportSummary.realTradesSent],
+            ["Synthetic Excluded", mlDatasetExportSummary.syntheticTradesExcluded],
+            ["Readiness Level", mlDatasetExportSummary.readinessLevel],
+            ["Ready For Training", String(mlDatasetExportSummary.readyForTraining)],
+            ["Gate Score", mlDatasetExportSummary.score],
+          ]}
+          messages={mlDatasetExportSummary.messages || []}
         />
       )}
 
