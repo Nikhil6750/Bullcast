@@ -14,6 +14,7 @@ export default function Navbar() {
         <Link to="/watchlist" className={`py-1 transition-colors ${isActive("/watchlist")}`}>Watchlist</Link>
         <Link to="/backtest" className={`py-1 transition-colors ${isActive("/backtest")}`}>Backtest</Link>
         <Link to="/journal" className={`py-1 transition-colors ${isActive("/journal")}`}>Journal</Link>
+        <Link to="/intelligence" className={`py-1 transition-colors ${isActive("/intelligence")}`}>Intelligence</Link>
       </div>
     </nav>
   );

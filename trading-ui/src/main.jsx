@@ -11,6 +11,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Sentiment = lazy(() => import("./pages/Sentiment"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Journal = lazy(() => import("./pages/Journal"));
+const Intelligence = lazy(() => import("./pages/Intelligence"));
 
 const RouteNotFound = () => (
   <div className="p-6 text-white">
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="watchlist" element={<Suspense fallback={<Fallback />}><Watchlist /></Suspense>} />
           <Route path="backtest" element={<Suspense fallback={<Fallback />}><StrategyBuilder /></Suspense>} />
           <Route path="journal" element={<Suspense fallback={<Fallback />}><Journal /></Suspense>} />
+          <Route path="intelligence" element={<Suspense fallback={<Fallback />}><Intelligence /></Suspense>} />
           <Route path="*" element={<RouteNotFound />} />
         </Route>
       </Routes>

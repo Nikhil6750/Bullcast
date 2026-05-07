@@ -18,6 +18,7 @@ const INTERVALS = ['1d', '1wk', '1mo'];
 export default function SymbolBacktest() {
   const [assetType, setAssetType] = useState('stock');
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayMode, setDisplayMode] = useState('beginner');
   
   const [config, setConfig] = useState({
     symbol: '',
@@ -34,6 +35,7 @@ export default function SymbolBacktest() {
   const { result: results, loading, error, execute } = useBacktest();
 
   const filteredSearchResults = (searchResults || []).filter(item => !assetType || item.type === assetType);
+  const isExpertMode = displayMode === 'expert';
 
   const handleRun = async () => {
     if (!config.symbol) {
@@ -66,7 +68,23 @@ export default function SymbolBacktest() {
       {/* Sidebar Config */}
       <div className="glass-panel p-4 flex flex-col gap-4">
         <div>
-          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">Asset Type</div>
+          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">Display Mode</div>
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--color-border)] bg-black/20 p-1">
+            {['beginner', 'expert'].map(mode => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setDisplayMode(mode)}
+                className={`rounded-lg px-3 py-2 text-xs uppercase tracking-widest transition-colors ${displayMode === mode ? 'bg-white/10 text-[var(--color-text)] border border-white/10' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}
+              >
+                {mode === 'beginner' ? 'Beginner' : 'Expert'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">{isExpertMode ? 'Asset Type' : 'Market'}</div>
           <div className="flex flex-wrap gap-2">
             {ASSET_TYPES.map(type => (
               <button
@@ -81,7 +99,7 @@ export default function SymbolBacktest() {
         </div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">Symbol Search</div>
+          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">{isExpertMode ? 'Symbol Search' : 'Pick Symbol'}</div>
           <input
             className="terminal-input w-full"
             placeholder="Search symbol..."
@@ -108,44 +126,50 @@ export default function SymbolBacktest() {
         </div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">Strategy</div>
+          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-2">{isExpertMode ? 'Strategy' : 'Strategy Style'}</div>
           <select className="terminal-input w-full" value={config.strategy} onChange={(e) => setConfig({ ...config, strategy: e.target.value })}>
             {STRATEGIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${isExpertMode ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Period</div>
+            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">{isExpertMode ? 'Period' : 'History Length'}</div>
             <select className="terminal-input w-full" value={config.period} onChange={(e) => setConfig({ ...config, period: e.target.value })}>
               {PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Interval</div>
-            <select className="terminal-input w-full" value={config.interval} onChange={(e) => setConfig({ ...config, interval: e.target.value })}>
-              {INTERVALS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
+          {isExpertMode && (
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Interval</div>
+              <select className="terminal-input w-full" value={config.interval} onChange={(e) => setConfig({ ...config, interval: e.target.value })}>
+                {INTERVALS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Initial Cap</div>
-            <input type="number" className="terminal-input w-full" value={config.initial_capital} onChange={(e) => setConfig({ ...config, initial_capital: e.target.value })} />
+        {isExpertMode && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Initial Cap</div>
+              <input type="number" className="terminal-input w-full" value={config.initial_capital} onChange={(e) => setConfig({ ...config, initial_capital: e.target.value })} />
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Commission</div>
+              <input type="number" step="0.001" className="terminal-input w-full" value={config.commission} onChange={(e) => setConfig({ ...config, commission: e.target.value })} />
+            </div>
           </div>
+        )}
+
+        {isExpertMode && (
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Commission</div>
-            <input type="number" step="0.001" className="terminal-input w-full" value={config.commission} onChange={(e) => setConfig({ ...config, commission: e.target.value })} />
+            <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Slippage</div>
+            <input type="number" step="0.001" className="terminal-input w-full" value={config.slippage} onChange={(e) => setConfig({ ...config, slippage: e.target.value })} />
           </div>
-        </div>
+        )}
 
-        <div>
-          <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Slippage</div>
-          <input type="number" step="0.001" className="terminal-input w-full" value={config.slippage} onChange={(e) => setConfig({ ...config, slippage: e.target.value })} />
-        </div>
-
-        {config.strategy === 'sentiment_sma' && (
+        {isExpertMode && config.strategy === 'sentiment_sma' && (
           <div>
             <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Sentiment Score ({config.sentiment_score})</div>
             <input type="range" min="0" max="100" className="w-full accent-[var(--color-bull)]" value={config.sentiment_score} onChange={(e) => setConfig({ ...config, sentiment_score: e.target.value })} />
@@ -165,7 +189,7 @@ export default function SymbolBacktest() {
           <>
             {/* Metrics Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {[
+              {(isExpertMode ? [
                 { label: "Total Trades", value: results.metrics.total_trades },
                 { label: "Win Rate", value: `${results.metrics.win_rate}%` },
                 { label: "Total P&L", value: `$${results.metrics.total_pnl.toFixed(2)}`, color: results.metrics.total_pnl >= 0 ? "text-[var(--color-bull)]" : "text-[var(--color-bear)]" },
@@ -175,7 +199,13 @@ export default function SymbolBacktest() {
                 { label: "Sharpe Ratio", value: results.metrics.sharpe_ratio.toFixed(2) },
                 { label: "Sortino Ratio", value: results.metrics.sortino_ratio.toFixed(2) },
                 { label: "Calmar Ratio", value: results.metrics.calmar_ratio.toFixed(2) },
-              ].map((m, i) => (
+              ] : [
+                { label: "Trades", value: results.metrics.total_trades },
+                { label: "Win Rate", value: `${results.metrics.win_rate}%` },
+                { label: "P&L", value: `$${results.metrics.total_pnl.toFixed(2)}`, color: results.metrics.total_pnl >= 0 ? "text-[var(--color-bull)]" : "text-[var(--color-bear)]" },
+                { label: "Return", value: `${results.metrics.return_pct.toFixed(2)}%`, color: results.metrics.return_pct >= 0 ? "text-[var(--color-bull)]" : "text-[var(--color-bear)]" },
+                { label: "Worst Dip", value: `${results.metrics.max_drawdown.toFixed(2)}%` },
+              ]).map((m, i) => (
                 <div key={i} className="glass-panel p-3 flex flex-col justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
                   <div className="text-[10px] uppercase tracking-widest text-[var(--color-text-secondary)]">{m.label}</div>
                   <div className={`text-lg font-semibold mt-1 ${m.color || "text-[var(--color-text)]"}`}>{m.value}</div>
@@ -217,6 +247,7 @@ export default function SymbolBacktest() {
             </div>
 
             {/* Trades Table */}
+            {isExpertMode ? (
             <div className="glass-panel p-4 overflow-hidden flex flex-col max-h-[400px]">
               <div className="text-[11px] uppercase tracking-widest text-[var(--color-text-secondary)] mb-4">Trade Execution Log</div>
               <div className="overflow-y-auto">
@@ -252,6 +283,11 @@ export default function SymbolBacktest() {
                 </table>
               </div>
             </div>
+            ) : (
+              <div className="glass-panel p-4 text-sm text-[var(--color-text-secondary)]">
+                Beginner mode shows headline results only. Switch to Expert for interval, cost assumptions, technical ratios, and the full execution log.
+              </div>
+            )}
           </>
         ) : (
           <div className="glass-panel flex-1 flex flex-col items-center justify-center text-[var(--color-text-secondary)] p-12 text-center min-h-[400px]">

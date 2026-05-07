@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import * as XLSX from "xlsx";
 
 const STORAGE_KEY = "bullcast_journal_v1";
 
@@ -44,7 +45,9 @@ function inferAssetType(symbol) {
 
 function parseOptionalNumber(value) {
   if (value === "" || value === null || value === undefined) return null;
-  const n = Number(value);
+  const cleaned = typeof value === "string" ? value.replace(/[₹$,%]/g, "").replace(/,/g, "").trim() : value;
+  if (cleaned === "") return null;
+  const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -55,41 +58,123 @@ function parseConfidence(value) {
 
 function normalizeBoolean(value) {
   if (value === true || value === false) return value;
-  if (value === "true") return true;
-  if (value === "false") return false;
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["true", "yes", "y", "1"].includes(normalized)) return true;
+  if (["false", "no", "n", "0"].includes(normalized)) return false;
   return null;
 }
+
+function dateStamp() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function normalizeKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[%&/()]/g, "")
+    .replace(/[\s-]+/g, "_");
+}
+
+const IMPORT_COLUMN_ALIASES = {
+  assettype: "asset_type",
+  asset_type: "asset_type",
+  confidence: "confidence_score",
+  confidence_score: "confidence_score",
+  direction: "type",
+  entry: "entry_price",
+  entry_price: "entry_price",
+  entry_reason: "entry_reason",
+  exit: "exit_price",
+  exit_price: "exit_price",
+  exit_reason: "exit_reason",
+  id: "id",
+  mistake_tag: "mistake_tag",
+  notes: "notes",
+  pl: "pnl",
+  pl_: "pnl_pct",
+  planned_reward: "planned_reward",
+  planned_risk: "planned_risk",
+  pnl: "pnl",
+  pnl_pct: "pnl_pct",
+  quantity: "quantity",
+  qty: "quantity",
+  result: "result",
+  rule_followed: "rule_followed",
+  scenario_context: "scenario_context",
+  setup_tag: "setup_tag",
+  source_type: "source_type",
+  symbol: "symbol",
+  synthetic_flag: "synthetic_flag",
+  trade_id: "id",
+  type: "type",
+};
+
+const SUPPORTED_IMPORT_COLUMNS = new Set([
+  "id",
+  "date",
+  "symbol",
+  "asset_type",
+  "type",
+  "entry_price",
+  "exit_price",
+  "quantity",
+  "notes",
+  "pnl",
+  "pnl_pct",
+  "result",
+  "setup_tag",
+  "mistake_tag",
+  "confidence_score",
+  "planned_risk",
+  "planned_reward",
+  "rule_followed",
+  "entry_reason",
+  "exit_reason",
+  "scenario_context",
+  "synthetic_flag",
+  "source_type",
+]);
 
 function formatTag(value) {
   if (!value) return "";
   return String(value).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function normalizeResult(value) {
+  const text = String(value ?? "").trim().toUpperCase();
+  if (text === "WIN" || text === "PROFIT" || text === "W") return "WIN";
+  if (text === "LOSS" || text === "LOSE" || text === "L") return "LOSS";
+  return null;
+}
+
 function normalizeTrade(trade, index = null) {
   const symbol = String(trade?.symbol || "").trim().toUpperCase();
   const type = String(trade?.type || "LONG").toUpperCase() === "SHORT" ? "SHORT" : "LONG";
-  const entry = Number(trade?.entry_price ?? 0);
-  const exit = Number(trade?.exit_price ?? 0);
-  const quantity = Number(trade?.quantity ?? 0);
-  const hasValidPnl = Number.isFinite(Number(trade?.pnl));
+  const entry = parseOptionalNumber(trade?.entry_price);
+  const exit = parseOptionalNumber(trade?.exit_price);
+  const quantity = parseOptionalNumber(trade?.quantity);
+  const pnl = parseOptionalNumber(trade?.pnl);
+  const pnlPct = parseOptionalNumber(trade?.pnl_pct);
   const computed = calcPnl(type, entry, exit, quantity);
   const assetType = ASSET_TYPES.includes(trade?.asset_type) ? trade.asset_type : inferAssetType(symbol);
   const setupTag = SETUP_TAGS.includes(trade?.setup_tag) ? trade.setup_tag : "";
   const mistakeTag = MISTAKE_TAGS.includes(trade?.mistake_tag) ? trade.mistake_tag : "none";
+  const result = normalizeResult(trade?.result) || computed.result || (pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : null);
 
-  return {
+  const normalized = {
     id: String(trade?.id || `${symbol || "TRADE"}-${trade?.date || Date.now()}-${index ?? Date.now()}`),
     date: String(trade?.date || new Date().toISOString().split("T")[0]),
     symbol,
     asset_type: assetType,
     type,
-    entry_price: Number.isFinite(entry) ? entry : 0,
-    exit_price: Number.isFinite(exit) ? exit : 0,
-    quantity: Number.isFinite(quantity) ? quantity : 0,
+    entry_price: entry,
+    exit_price: exit,
+    quantity,
     notes: String(trade?.notes || ""),
-    pnl: hasValidPnl ? Number(trade.pnl) : computed.pnl,
-    pnl_pct: Number.isFinite(Number(trade?.pnl_pct)) ? Number(trade.pnl_pct) : computed.pnl_pct,
-    result: String(trade?.result || computed.result).toUpperCase() === "WIN" ? "WIN" : "LOSS",
+    pnl: pnl ?? computed.pnl,
+    pnl_pct: pnlPct ?? computed.pnl_pct,
+    result,
     setup_tag: setupTag,
     mistake_tag: mistakeTag,
     confidence_score: parseConfidence(trade?.confidence_score),
@@ -99,6 +184,12 @@ function normalizeTrade(trade, index = null) {
     entry_reason: String(trade?.entry_reason || ""),
     exit_reason: String(trade?.exit_reason || ""),
   };
+
+  if (trade?.scenario_context !== undefined) normalized.scenario_context = String(trade.scenario_context || "");
+  if (trade?.synthetic_flag !== undefined) normalized.synthetic_flag = normalizeBoolean(trade.synthetic_flag);
+  if (trade?.source_type !== undefined) normalized.source_type = String(trade.source_type || "").trim().toLowerCase();
+
+  return normalized;
 }
 
 function loadTrades() {
@@ -107,6 +198,17 @@ function loadTrades() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.map((trade, index) => normalizeTrade(trade, index)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadRawStoredTrades() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(trade => trade && typeof trade === "object") : [];
   } catch {
     return [];
   }
@@ -121,13 +223,18 @@ function saveTrades(trades) {
 }
 
 function calcPnl(type, entry, exit, qty) {
-  if (!entry || !exit || !qty) return { pnl: 0, pnl_pct: 0, result: "LOSS" };
+  const entryValue = Number(entry);
+  const exitValue = Number(exit);
+  const quantityValue = Number(qty);
+  if (!Number.isFinite(entryValue) || !Number.isFinite(exitValue) || !Number.isFinite(quantityValue) || entryValue <= 0 || quantityValue <= 0) {
+    return { pnl: null, pnl_pct: null, result: null };
+  }
   const pnl = type === "LONG"
-    ? (exit - entry) * qty
-    : (entry - exit) * qty;
-  const cost = entry * qty;
+    ? (exitValue - entryValue) * quantityValue
+    : (entryValue - exitValue) * quantityValue;
+  const cost = entryValue * quantityValue;
   const pnl_pct = cost > 0 ? (pnl / cost) * 100 : 0;
-  return { pnl, pnl_pct, result: pnl > 0 ? "WIN" : "LOSS" };
+  return { pnl, pnl_pct, result: pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : null };
 }
 
 function formatCurrency(v) {
@@ -135,6 +242,17 @@ function formatCurrency(v) {
   if (!Number.isFinite(n)) return "₹0.00";
   const sign = n > 0 ? "+" : "";
   return sign + "₹" + Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatNumber(value, digits = 2) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "-";
+}
+
+function csvCell(value) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function downloadCSV(trades) {
@@ -146,15 +264,15 @@ function downloadCSV(trades) {
   const rows = trades.map(t => [
     t.date, t.symbol, t.asset_type, t.type,
     t.entry_price, t.exit_price, t.quantity,
-    t.pnl.toFixed(2), t.pnl_pct.toFixed(2),
+    parseOptionalNumber(t.pnl)?.toFixed(2) ?? "", parseOptionalNumber(t.pnl_pct)?.toFixed(2) ?? "",
     t.result, t.setup_tag || "", t.mistake_tag || "none", t.confidence_score ?? "",
     t.planned_risk ?? "", t.planned_reward ?? "",
     t.rule_followed === null || t.rule_followed === undefined ? "" : t.rule_followed,
-    `"${(t.entry_reason || "").replace(/"/g, '""')}"`,
-    `"${(t.exit_reason || "").replace(/"/g, '""')}"`,
-    `"${(t.notes || "").replace(/"/g, '""')}"`
+    t.entry_reason || "",
+    t.exit_reason || "",
+    t.notes || ""
   ]);
-  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const csv = [headers.map(csvCell).join(","), ...rows.map(r => r.map(csvCell).join(","))].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -163,6 +281,138 @@ function downloadCSV(trades) {
   a.download = `bullcast-journal-${today}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadJSON(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function isSyntheticTrade(trade) {
+  const syntheticFlag = trade?.synthetic_flag === true || String(trade?.synthetic_flag || "").trim().toLowerCase() === "true";
+  const syntheticSource = String(trade?.source_type || "").trim().toLowerCase() === "synthetic_dev";
+  const syntheticId = String(trade?.id || "").trim().toUpperCase().startsWith("SYN-");
+  return syntheticFlag || syntheticSource || syntheticId;
+}
+
+function splitRealAndSyntheticTrades(trades) {
+  const realTrades = [];
+  const syntheticTrades = [];
+
+  trades.forEach(trade => {
+    if (isSyntheticTrade(trade)) syntheticTrades.push(trade);
+    else realTrades.push(trade);
+  });
+
+  return { realTrades, syntheticTrades };
+}
+
+function canonicalImportRow(row) {
+  const normalized = {};
+  Object.entries(row || {}).forEach(([rawKey, value]) => {
+    const key = normalizeKey(rawKey);
+    const canonical = IMPORT_COLUMN_ALIASES[key] || key;
+    if (SUPPORTED_IMPORT_COLUMNS.has(canonical)) {
+      normalized[canonical] = value;
+    }
+  });
+  return normalized;
+}
+
+function isBlankImportRow(row) {
+  return !Object.values(row || {}).some(value => String(value ?? "").trim() !== "");
+}
+
+async function parseJournalImportFile(file) {
+  const filename = String(file?.name || "").toLowerCase();
+  if (!filename.endsWith(".csv") && !filename.endsWith(".xlsx")) {
+    throw new Error("Unsupported file type. Upload a .csv or .xlsx file.");
+  }
+
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  if (!firstSheetName) {
+    throw new Error("Import file has no readable sheets.");
+  }
+
+  return XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: "", raw: false });
+}
+
+function normalizeImportedTrade(row, index) {
+  const data = canonicalImportRow(row);
+  if (isBlankImportRow(data)) {
+    return { trade: null, error: null };
+  }
+
+  const symbol = String(data.symbol || "").trim().toUpperCase();
+  if (!symbol) {
+    return { trade: null, error: `Row ${index + 2}: missing symbol.` };
+  }
+
+  const type = String(data.type || "LONG").trim().toUpperCase() === "SHORT" ? "SHORT" : "LONG";
+  const entry = parseOptionalNumber(data.entry_price);
+  const exit = parseOptionalNumber(data.exit_price);
+  const quantity = parseOptionalNumber(data.quantity);
+  const computed = calcPnl(type, entry, exit, quantity);
+  const importedPnl = parseOptionalNumber(data.pnl);
+  const pnl = importedPnl ?? computed.pnl;
+  const result = normalizeResult(data.result) || computed.result || (pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : null);
+  const assetType = String(data.asset_type || "").trim().toLowerCase();
+  const setupTag = normalizeKey(data.setup_tag);
+  const mistakeTag = normalizeKey(data.mistake_tag);
+
+  return {
+    trade: normalizeTrade({
+      id: String(data.id || "").trim() || `IMPORT-${dateStamp()}-${index + 1}-${symbol}`,
+      date: String(data.date || dateStamp()).trim(),
+      symbol,
+      asset_type: ASSET_TYPES.includes(assetType) ? assetType : inferAssetType(symbol),
+      type,
+      entry_price: entry,
+      exit_price: exit,
+      quantity,
+      notes: String(data.notes || "").trim(),
+      pnl,
+      pnl_pct: parseOptionalNumber(data.pnl_pct) ?? computed.pnl_pct,
+      result,
+      setup_tag: SETUP_TAGS.includes(setupTag) ? setupTag : "",
+      mistake_tag: MISTAKE_TAGS.includes(mistakeTag) ? mistakeTag : "none",
+      confidence_score: parseConfidence(data.confidence_score),
+      planned_risk: parseOptionalNumber(data.planned_risk),
+      planned_reward: parseOptionalNumber(data.planned_reward),
+      rule_followed: normalizeBoolean(data.rule_followed),
+      entry_reason: String(data.entry_reason || "").trim(),
+      exit_reason: String(data.exit_reason || "").trim(),
+      scenario_context: String(data.scenario_context || "").trim(),
+      synthetic_flag: normalizeBoolean(data.synthetic_flag),
+      source_type: String(data.source_type || "").trim().toLowerCase(),
+    }),
+    error: null,
+  };
+}
+
+function mergeImportedTrades(existingTrades, importedTrades) {
+  const byId = new Map(existingTrades.map((trade, index) => [trade.id, { trade, index }]));
+  const merged = [...existingTrades];
+  let updatedCount = 0;
+
+  importedTrades.forEach(trade => {
+    const existing = byId.get(trade.id);
+    if (existing) {
+      merged[existing.index] = trade;
+      updatedCount += 1;
+    } else {
+      byId.set(trade.id, { trade, index: merged.length });
+      merged.push(trade);
+    }
+  });
+
+  return { merged, updatedCount };
 }
 
 // --- Modal Component ---
@@ -503,6 +753,10 @@ export default function Journal() {
   const [editingTrade, setEditingTrade] = useState(null);
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
+  const [importing, setImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState(null);
+  const [realExportSummary, setRealExportSummary] = useState(null);
+  const importInputRef = useRef(null);
 
   useEffect(() => { saveTrades(trades); }, [trades]);
 
@@ -531,6 +785,79 @@ export default function Journal() {
     setTrades(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const handleImportFile = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportSummary(null);
+
+    try {
+      const rows = await parseJournalImportFile(file);
+      const importedTrades = [];
+      const validationErrors = [];
+      let skippedCount = 0;
+
+      rows.forEach((row, index) => {
+        const { trade, error } = normalizeImportedTrade(row, index);
+        if (error) {
+          validationErrors.push(error);
+          skippedCount += 1;
+        } else if (trade) {
+          importedTrades.push(trade);
+        } else {
+          skippedCount += 1;
+        }
+      });
+
+      const existing = loadRawStoredTrades().map((trade, index) => normalizeTrade(trade, index));
+      const { merged, updatedCount } = mergeImportedTrades(existing, importedTrades);
+      const syntheticImported = importedTrades.some(isSyntheticTrade);
+
+      if (importedTrades.length > 0) {
+        saveTrades(merged);
+        setTrades(merged);
+      }
+
+      setImportSummary({
+        importedCount: importedTrades.length,
+        updatedCount,
+        skippedCount,
+        validationErrors,
+        syntheticImported,
+        error: "",
+      });
+    } catch (error) {
+      setImportSummary({
+        importedCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        validationErrors: [String(error?.message || error || "Import failed.")],
+        syntheticImported: false,
+        error: "Import failed.",
+      });
+    } finally {
+      setImporting(false);
+      if (event.target) event.target.value = "";
+    }
+  }, []);
+
+  const exportRealTradesJSON = useCallback(() => {
+    const localTrades = loadRawStoredTrades();
+    const { realTrades, syntheticTrades } = splitRealAndSyntheticTrades(localTrades);
+
+    setRealExportSummary({
+      totalLocalTrades: localTrades.length,
+      realTradesExported: realTrades.length,
+      syntheticTradesExcluded: syntheticTrades.length,
+      downloaded: realTrades.length > 0,
+    });
+
+    if (realTrades.length === 0) return;
+
+    downloadJSON(realTrades, `bullcast_real_journal_trades_${dateStamp()}.json`);
+  }, []);
+
   const toggleSort = (col) => {
     if (sortCol === col) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -547,7 +874,7 @@ export default function Journal() {
       switch (sortCol) {
         case "date": return a.date.localeCompare(b.date) * dir;
         case "symbol": return a.symbol.localeCompare(b.symbol) * dir;
-        case "pnl": return (a.pnl - b.pnl) * dir;
+        case "pnl": return ((Number(a.pnl) || 0) - (Number(b.pnl) || 0)) * dir;
         case "result": return a.result.localeCompare(b.result) * dir;
         default: return 0;
       }
@@ -559,9 +886,10 @@ export default function Journal() {
   const summary = useMemo(() => {
     if (trades.length === 0) return null;
     const wins = trades.filter(t => t.result === "WIN").length;
-    const netPnl = trades.reduce((s, t) => s + t.pnl, 0);
-    const best = Math.max(...trades.map(t => t.pnl));
-    const worst = Math.min(...trades.map(t => t.pnl));
+    const pnlValues = trades.map(t => Number(t.pnl)).filter(Number.isFinite);
+    const netPnl = pnlValues.reduce((s, value) => s + value, 0);
+    const best = pnlValues.length ? Math.max(...pnlValues) : 0;
+    const worst = pnlValues.length ? Math.min(...pnlValues) : 0;
     const winRate = (wins / trades.length) * 100;
     return { total: trades.length, winRate, netPnl, best, worst };
   }, [trades]);
@@ -571,7 +899,10 @@ export default function Journal() {
     return sortDir === "asc" ? " ^" : " v";
   };
 
-  const totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+  const totalPnl = trades.reduce((s, t) => {
+    const pnl = Number(t.pnl);
+    return s + (Number.isFinite(pnl) ? pnl : 0);
+  }, 0);
 
   return (
     <div style={{ minHeight: "100%", padding: "24px", maxWidth: 1280, margin: "0 auto" }}>
@@ -586,6 +917,25 @@ export default function Journal() {
           </h1>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleImportFile}
+            style={{ display: "none" }}
+          />
+          <button onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            style={{
+              padding: "10px 18px", borderRadius: 4, cursor: importing ? "not-allowed" : "pointer",
+              background: "transparent", border: "1px solid rgba(200,241,53,0.25)",
+              color: importing ? "#555566" : "#C8F135", fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.72rem", letterSpacing: "0.06em", transition: "all 0.15s",
+              opacity: importing ? 0.65 : 1,
+            }}
+          >
+            {importing ? "Importing..." : "Import CSV/XLSX"}
+          </button>
           {trades.length > 0 && (
             <button onClick={() => downloadCSV(trades)}
               style={{
@@ -598,6 +948,16 @@ export default function Journal() {
               Export CSV
             </button>
           )}
+          <button onClick={exportRealTradesJSON}
+            style={{
+              padding: "10px 18px", borderRadius: 4, cursor: "pointer",
+              background: "rgba(255,184,77,0.06)", border: "1px solid rgba(255,184,77,0.26)",
+              color: "#FFB84D", fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.72rem", letterSpacing: "0.06em", transition: "all 0.15s",
+            }}
+          >
+            Export Real Trades JSON
+          </button>
           <button onClick={() => { setEditingTrade(null); setShowModal(true); }}
             style={{
               padding: "10px 22px", borderRadius: 4, cursor: "pointer",
@@ -610,6 +970,49 @@ export default function Journal() {
           </button>
         </div>
       </div>
+
+      <div style={{
+        marginBottom: 16,
+        padding: "10px 12px",
+        background: "rgba(255,184,77,0.06)",
+        border: "1px solid rgba(255,184,77,0.18)",
+        borderRadius: 4,
+        color: "#FFB84D",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.68rem",
+        lineHeight: 1.5,
+      }}>
+        Real training should use only real/paper journal trades. Synthetic rows are for development pipeline testing only.
+      </div>
+
+      {importSummary && (
+        <JournalActionSummary
+          tone={importSummary.error ? "error" : importSummary.syntheticImported ? "warning" : "success"}
+          title={importSummary.error || "Import Summary"}
+          metrics={[
+            ["Imported", importSummary.importedCount],
+            ["Updated", importSummary.updatedCount],
+            ["Skipped", importSummary.skippedCount],
+          ]}
+          messages={[
+            ...(importSummary.syntheticImported ? ["Synthetic/sample trades are for development only. Use real journal history for real model training."] : []),
+            ...importSummary.validationErrors.slice(0, 6),
+            ...(importSummary.validationErrors.length > 6 ? [`${importSummary.validationErrors.length - 6} more validation errors.`] : []),
+          ]}
+        />
+      )}
+
+      {realExportSummary && (
+        <JournalActionSummary
+          tone={realExportSummary.downloaded ? "success" : "error"}
+          title={realExportSummary.downloaded ? "Real Trades Export Summary" : "No real trades found. Synthetic/dev rows were excluded."}
+          metrics={[
+            ["Total Local Trades", realExportSummary.totalLocalTrades],
+            ["Real Trades Exported", realExportSummary.realTradesExported],
+            ["Synthetic Excluded", realExportSummary.syntheticTradesExcluded],
+          ]}
+        />
+      )}
 
       {/* Summary Strip */}
       {summary && (
@@ -678,10 +1081,10 @@ export default function Journal() {
                   <Td>{t.date}</Td>
                   <Td style={{ fontWeight: 700, color: "#e5e5e5" }}>{t.symbol}</Td>
                   <Td style={{ fontWeight: 700, color: t.type === "LONG" ? "#C8F135" : "#FF3B3B" }}>{t.type}</Td>
-                  <Td align="right">{t.entry_price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Td>
-                  <Td align="right">{t.exit_price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Td>
-                  <Td align="right">{t.quantity}</Td>
-                  <Td align="right" style={{ fontWeight: 700, color: t.result === "WIN" ? "#00FF87" : "#FF3B3B" }}>
+                  <Td align="right">{formatNumber(t.entry_price)}</Td>
+                  <Td align="right">{formatNumber(t.exit_price)}</Td>
+                  <Td align="right">{formatNumber(t.quantity, 0)}</Td>
+                  <Td align="right" style={{ fontWeight: 700, color: Number(t.pnl) >= 0 ? "#00FF87" : "#FF3B3B" }}>
                     {formatCurrency(t.pnl)}
                   </Td>
                   <Td>
@@ -689,11 +1092,11 @@ export default function Journal() {
                       padding: "2px 8px", borderRadius: 3,
                       fontFamily: "'JetBrains Mono', monospace", fontSize: "0.65rem",
                       textTransform: "uppercase", fontWeight: 700,
-                      background: t.result === "WIN" ? "rgba(0,255,135,0.1)" : "rgba(255,59,59,0.1)",
-                      border: t.result === "WIN" ? "1px solid rgba(0,255,135,0.25)" : "1px solid rgba(255,59,59,0.25)",
-                      color: t.result === "WIN" ? "#00FF87" : "#FF3B3B",
+                      background: t.result === "WIN" ? "rgba(0,255,135,0.1)" : t.result === "LOSS" ? "rgba(255,59,59,0.1)" : "rgba(255,255,255,0.04)",
+                      border: t.result === "WIN" ? "1px solid rgba(0,255,135,0.25)" : t.result === "LOSS" ? "1px solid rgba(255,59,59,0.25)" : "1px solid rgba(255,255,255,0.08)",
+                      color: t.result === "WIN" ? "#00FF87" : t.result === "LOSS" ? "#FF3B3B" : "#555566",
                     }}>
-                      {t.result}
+                      {t.result || "-"}
                     </span>
                   </Td>
                   <Td>
@@ -753,6 +1156,75 @@ export default function Journal() {
 }
 
 // --- Utility sub-components ---
+function JournalActionSummary({ title, metrics = [], messages = [], tone = "success" }) {
+  const toneColor = tone === "error" ? "#FF3B3B" : tone === "warning" ? "#FFB84D" : "#C8F135";
+  const toneBorder = tone === "error" ? "rgba(255,59,59,0.22)" : tone === "warning" ? "rgba(255,184,77,0.22)" : "rgba(200,241,53,0.14)";
+  const toneBackground = tone === "error" ? "rgba(255,59,59,0.06)" : tone === "warning" ? "rgba(255,184,77,0.06)" : "rgba(200,241,53,0.04)";
+
+  return (
+    <div style={{
+      marginBottom: 18,
+      padding: "12px",
+      background: "#0a0a0f",
+      border: `1px solid ${toneBorder}`,
+      borderRadius: 4,
+    }}>
+      <div style={{
+        color: toneColor,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.68rem",
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        marginBottom: 10,
+      }}>
+        {title}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 10 }}>
+        {metrics.map(([label, value]) => (
+          <div key={label} style={{
+            background: "#060608",
+            border: "1px solid rgba(200,241,53,0.08)",
+            borderRadius: 4,
+            padding: "9px 10px",
+          }}>
+            <div style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.55rem",
+              color: "#C8F135",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginBottom: 5,
+            }}>
+              {label}
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.78rem", color: "#888899" }}>
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+      {messages.length > 0 && (
+        <div style={{ display: "grid", gap: 7, marginTop: 10 }}>
+          {messages.map((message, index) => (
+            <div key={`${message}-${index}`} style={{
+              padding: "8px 10px",
+              background: toneBackground,
+              border: `1px solid ${toneBorder}`,
+              borderRadius: 4,
+              color: toneColor,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.68rem",
+              lineHeight: 1.5,
+            }}>
+              {message}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummaryCard({ label, value, color }) {
   return (
     <div style={{
