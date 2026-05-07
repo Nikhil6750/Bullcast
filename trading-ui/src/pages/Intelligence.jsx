@@ -111,6 +111,19 @@ function formatCell(value) {
   return String(value)
 }
 
+function formatReportPercent(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '-'
+  const pct = n * 100
+  return `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`
+}
+
+function formatReportBoolean(value) {
+  if (value === true) return 'Yes'
+  if (value === false) return 'No'
+  return '-'
+}
+
 function datasetDateStamp() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -553,6 +566,7 @@ function TrainingReportPanel() {
   const report = payload?.report || {}
   const metrics = report?.metrics || {}
   const qualityGate = report?.quality_gate || {}
+  const dataOrigin = report?.data_origin && typeof report.data_origin === 'object' ? report.data_origin : null
   const warnings = Array.isArray(report?.warnings) ? report.warnings : []
   const selectedColumns = Array.isArray(report?.selected_input_columns) ? report.selected_input_columns : []
   const confusionMatrix = Array.isArray(metrics?.confusion_matrix) ? metrics.confusion_matrix : []
@@ -724,6 +738,8 @@ function TrainingReportPanel() {
               </div>
             )}
 
+            <DataOriginPanel dataOrigin={dataOrigin} />
+
             <div
               style={{
                 display: 'grid',
@@ -849,6 +865,115 @@ function TrainingReportPanel() {
         )}
       </div>
     </section>
+  )
+}
+
+function DataOriginPanel({ dataOrigin }) {
+  const containsSyntheticData = dataOrigin?.contains_synthetic_data === true
+  const devOnly = dataOrigin?.dev_only === true
+
+  return (
+    <div
+      style={{
+        background: '#060608',
+        border: `1px solid ${containsSyntheticData ? 'rgba(255,184,77,0.26)' : 'rgba(200,241,53,0.08)'}`,
+        borderRadius: 4,
+        padding: 14,
+        marginBottom: 16,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.58rem',
+            color: '#C8F135',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Data Origin
+        </div>
+
+        {devOnly && (
+          <span
+            style={{
+              padding: '4px 8px',
+              background: 'rgba(255,184,77,0.1)',
+              border: '1px solid rgba(255,184,77,0.28)',
+              borderRadius: 3,
+              color: '#FFB84D',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.56rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            DEV-ONLY REPORT
+          </span>
+        )}
+      </div>
+
+      {!dataOrigin ? (
+        <div
+          style={{
+            padding: '8px 10px',
+            background: 'rgba(255,184,77,0.06)',
+            border: '1px solid rgba(255,184,77,0.2)',
+            borderRadius: 4,
+            color: '#FFB84D',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.68rem',
+            lineHeight: 1.5,
+          }}
+        >
+          Data origin metadata unavailable. Treat this report as experimental.
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit,minmax(125px,1fr))',
+              gap: 8,
+            }}
+          >
+            <DatasetMetric label="Synthetic Rows" value={dataOrigin.synthetic_rows ?? '-'} />
+            <DatasetMetric label="Real Rows" value={dataOrigin.real_rows ?? '-'} />
+            <DatasetMetric label="Synthetic Ratio" value={formatReportPercent(dataOrigin.synthetic_ratio)} />
+            <DatasetMetric label="Contains Synthetic" value={formatReportBoolean(dataOrigin.contains_synthetic_data)} />
+            <DatasetMetric label="Dev Only" value={formatReportBoolean(dataOrigin.dev_only)} />
+          </div>
+
+          {containsSyntheticData && (
+            <div
+              style={{
+                padding: '9px 10px',
+                background: 'rgba(255,184,77,0.08)',
+                border: '1px solid rgba(255,184,77,0.28)',
+                borderRadius: 4,
+                color: '#FFB84D',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '0.68rem',
+                lineHeight: 1.5,
+                marginTop: 10,
+              }}
+            >
+              Synthetic/dev data detected. Metrics are for pipeline validation only and must not be treated as real model performance.
+            </div>
+          )}
+        </>
+      )}
+    </div>
   )
 }
 
