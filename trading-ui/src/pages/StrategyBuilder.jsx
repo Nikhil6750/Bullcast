@@ -4,6 +4,7 @@ import ForexChart from "../components/ForexChart";
 import PerformanceMetrics from "../components/PerformanceMetrics";
 import SetupsVirtualList from "../components/SetupsVirtualList";
 import SymbolBacktest from "../components/SymbolBacktest";
+import BeginnerBacktest from "../components/backtest/BeginnerBacktest";
 import { BASE_URL } from "../lib/api";
 
 const STRATEGY_OPTIONS = [
@@ -227,6 +228,8 @@ function DetailRow({ label, value, tone }) {
 
 function StrategyBuilder() {
   const [mode, setMode] = useState("symbol");
+  const [experienceMode, setExperienceMode] = useState("beginner");
+  const [expertInitialConfig, setExpertInitialConfig] = useState(null);
   const [csvFile, setCsvFile] = useState(null);
   const [strategyType, setStrategyType] = useState("moving_average");
   const [strategyParameters, setStrategyParameters] = useState(DEFAULT_PARAMETERS);
@@ -278,6 +281,18 @@ function StrategyBuilder() {
   const resetView = () => {
     setSelectedSetupId(null);
     setViewport(null);
+  };
+
+  const openExpertMode = (initialConfig = null) => {
+    if (initialConfig && typeof initialConfig === "object") {
+      setExpertInitialConfig({
+        symbol: initialConfig.symbol,
+        strategy: initialConfig.strategy,
+        period: initialConfig.period,
+        initial_capital: initialConfig.initial_capital,
+      });
+    }
+    setExperienceMode("expert");
   };
 
   const onRun = async () => {
@@ -596,7 +611,46 @@ function StrategyBuilder() {
         </div>
         </>
         ) : (
-          <SymbolBacktest />
+          <div className="flex flex-col gap-3">
+            <div className="glass-panel px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--color-text-secondary)]">
+                    Symbol Engine
+                  </div>
+                  <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--color-text)]">
+                    Backtest research terminal
+                  </h1>
+                  <p className="mt-2 max-w-3xl text-sm text-[var(--color-text-secondary)]">
+                    Beginner mode keeps the workflow guided. Expert mode exposes the full symbol search, strategy,
+                    cost controls, metrics, equity curve, benchmark comparison, and trade log.
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 rounded-lg border border-[var(--color-border)] bg-[rgba(10,10,10,0.45)] p-1">
+                  {[
+                    ["beginner", "Beginner"],
+                    ["expert", "Expert"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`tab-button ${experienceMode === value ? "tab-button-active" : ""}`}
+                      onClick={() => setExperienceMode(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {experienceMode === "beginner" ? (
+              <BeginnerBacktest onSwitchExpert={openExpertMode} />
+            ) : (
+              <SymbolBacktest initialConfig={expertInitialConfig} />
+            )}
+          </div>
         )}
       </div>
     </div>

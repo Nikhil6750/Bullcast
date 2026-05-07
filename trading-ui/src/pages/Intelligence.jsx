@@ -69,6 +69,9 @@ function normalizeTrade(trade) {
     rule_followed: optionalBoolean(trade.rule_followed ?? trade.ruleFollowed),
     entry_reason: String(trade.entry_reason ?? trade.entryReason ?? ''),
     exit_reason: String(trade.exit_reason ?? trade.exitReason ?? ''),
+    scenario_context: String(trade.scenario_context ?? trade.scenarioContext ?? ''),
+    synthetic_flag: optionalBoolean(trade.synthetic_flag ?? trade.syntheticFlag),
+    source_type: String(trade.source_type ?? trade.sourceType ?? ''),
   }
 }
 
@@ -321,7 +324,7 @@ function DatasetReadinessPanel({ trades }) {
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '0.68rem',
-              color: '#333344',
+              color: '#888899',
               margin: '6px 0 0',
               lineHeight: 1.5,
             }}
@@ -417,7 +420,7 @@ function DatasetReadinessPanel({ trades }) {
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: '0.62rem',
-                color: '#333344',
+                color: '#888899',
                 lineHeight: 1.4,
               }}
             >
@@ -539,7 +542,7 @@ function DatasetReadinessPanel({ trades }) {
                           padding: '9px 10px',
                           textAlign: 'left',
                           fontSize: '0.58rem',
-                          color: '#2a2a3e',
+                          color: '#555566',
                           letterSpacing: '0.08em',
                           textTransform: 'uppercase',
                           borderBottom: '1px solid rgba(200,241,53,0.06)',
@@ -710,6 +713,23 @@ function TrainingReportPanel() {
           </div>
         )}
 
+        {loading && (
+          <div
+            style={{
+              padding: '14px 16px',
+              background: '#060608',
+              border: '1px solid rgba(255,184,77,0.14)',
+              borderRadius: 4,
+              color: '#FFB84D',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.78rem',
+              lineHeight: 1.6,
+            }}
+          >
+            Loading training report...
+          </div>
+        )}
+
         {!error && !loading && payload?.available === false && (
           <div
             style={{
@@ -724,6 +744,23 @@ function TrainingReportPanel() {
             }}
           >
             {payload.message || 'No training report found. Run baseline training first.'}
+          </div>
+        )}
+
+        {!error && !loading && !payload && (
+          <div
+            style={{
+              padding: '14px 16px',
+              background: '#060608',
+              border: '1px solid rgba(200,241,53,0.08)',
+              borderRadius: 4,
+              color: '#888899',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.78rem',
+              lineHeight: 1.6,
+            }}
+          >
+            Training report status has not loaded yet.
           </div>
         )}
 
@@ -1328,6 +1365,98 @@ function RealDataPlanBlock({ title, children }) {
   )
 }
 
+function RagMarketContextPanel({ trades, analysis }) {
+  const context = analysis?.context_summary && typeof analysis.context_summary === 'object' ? analysis.context_summary : {}
+  const tradeCount = Array.isArray(trades) ? trades.length : 0
+  const hasAnalysis = Boolean(analysis)
+  const llmLabel = hasAnalysis
+    ? analysis.llm_available
+      ? 'AI-assisted answers'
+      : 'Pattern-matched answers'
+    : tradeCount > 0
+      ? 'Awaiting analysis'
+      : 'Waiting for journal data'
+  const note = tradeCount === 0
+    ? 'Journal RAG is idle until local trades exist. Add real journal entries to enable grounded pattern retrieval and market-context review.'
+    : hasAnalysis
+      ? 'Ask Your Data is grounded in local journal rows and available context fields. This is research guidance only, not prediction or trade execution.'
+      : 'Journal trades are available locally. Analysis will populate retrieval coverage and context summaries when the backend responds.'
+
+  return (
+    <section
+      style={{
+        background: '#0c0c14',
+        border: '1px solid rgba(200,241,53,0.08)',
+        borderRadius: 4,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(200,241,53,0.06)',
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.65rem',
+            color: '#C8F135',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}
+        >
+          RAG / Market Context
+        </p>
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.68rem',
+            color: '#888899',
+            margin: '6px 0 0',
+            lineHeight: 1.5,
+          }}
+        >
+          {note}
+        </p>
+      </div>
+
+      <div style={{ padding: '18px 20px', display: 'grid', gap: 14 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))',
+            gap: 10,
+          }}
+        >
+          <DatasetMetric label="Indexed Trades" value={tradeCount} />
+          <DatasetMetric label="Answer Mode" value={llmLabel} />
+          <DatasetMetric label="Sentiment Coverage" value={formatCoverage(context.sentiment_coverage)} />
+          <DatasetMetric label="Market Coverage" value={formatCoverage(context.market_coverage)} />
+          <DatasetMetric label="Context Trades" value={Number(context.trades_with_context ?? 0) || 0} />
+          <DatasetMetric label="Asset Mix" value={formatAssetMix(context.asset_mix)} />
+        </div>
+
+        <div
+          style={{
+            padding: '10px 12px',
+            background: 'rgba(255,184,77,0.06)',
+            border: '1px solid rgba(255,184,77,0.2)',
+            borderRadius: 4,
+            color: '#FFB84D',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.68rem',
+            lineHeight: 1.6,
+          }}
+        >
+          Context panels are for journal review and pipeline validation only. They do not produce buy/sell signals.
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function PlanLine({ label, value }) {
   return (
     <div
@@ -1530,7 +1659,7 @@ function TrainingReadinessPanel({ qualityGate }) {
                   }}
                 >
                   {check.message}
-                  <span style={{ color: '#333344' }}> - {formatQualityValue(check.value)}</span>
+                  <span style={{ color: '#888899' }}> - {formatQualityValue(check.value)}</span>
                 </div>
               </div>
             </div>
@@ -1642,7 +1771,7 @@ function EdgarDiagnosticsPanel() {
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '0.68rem',
-              color: '#333344',
+              color: '#888899',
               margin: '6px 0 0',
               lineHeight: 1.5,
             }}
@@ -1782,7 +1911,7 @@ function EdgarDiagnosticsPanel() {
                               padding: '9px 10px',
                               textAlign: 'left',
                               fontSize: '0.58rem',
-                              color: '#2a2a3e',
+                              color: '#555566',
                               letterSpacing: '0.08em',
                               textTransform: 'uppercase',
                               borderBottom: '1px solid rgba(200,241,53,0.06)',
@@ -1870,7 +1999,7 @@ function EdgarTable({ title, columns, rows }) {
                     padding: '9px 10px',
                     textAlign: 'left',
                     fontSize: '0.58rem',
-                    color: '#2a2a3e',
+                    color: '#555566',
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid rgba(200,241,53,0.06)',
@@ -2032,7 +2161,7 @@ export default function Intelligence() {
           style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: '0.82rem',
-            color: '#333344',
+            color: '#888899',
             maxWidth: 520,
           }}
         >
@@ -2068,7 +2197,7 @@ export default function Intelligence() {
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '0.82rem',
-              color: '#333344',
+              color: '#888899',
               lineHeight: 1.7,
               marginBottom: 24,
             }}
@@ -2099,6 +2228,7 @@ export default function Intelligence() {
         <div style={{ maxWidth: 760, marginTop: 20, display: 'grid', gap: 20 }}>
           <DatasetReadinessPanel trades={trades} />
           <RealDataCollectionPlan trades={trades} />
+          <RagMarketContextPanel trades={trades} analysis={null} />
           <TrainingReportPanel />
           <EdgarDiagnosticsPanel />
         </div>
@@ -2240,7 +2370,7 @@ export default function Intelligence() {
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: '0.62rem',
-                      color: '#2a2a3e',
+                      color: '#555566',
                       letterSpacing: '0.1em',
                       textTransform: 'uppercase',
                       marginBottom: 8,
@@ -2262,65 +2392,7 @@ export default function Intelligence() {
               ))}
             </div>
 
-            {analysis.context_summary && (
-              <div
-                className="intel-context-row"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
-                  gap: 12,
-                  background: '#0c0c14',
-                  border: '1px solid rgba(200,241,53,0.08)',
-                  borderRadius: 4,
-                  padding: '14px 16px',
-                }}
-              >
-                {[
-                  {
-                    label: 'Sentiment Coverage',
-                    value: formatCoverage(analysis.context_summary.sentiment_coverage),
-                  },
-                  {
-                    label: 'Market Coverage',
-                    value: formatCoverage(analysis.context_summary.market_coverage),
-                  },
-                  {
-                    label: 'Context Trades',
-                    value: Number(analysis.context_summary.trades_with_context ?? 0) || 0,
-                  },
-                  {
-                    label: 'Asset Mix',
-                    value: formatAssetMix(analysis.context_summary.asset_mix),
-                  },
-                ].map((item) => (
-                  <div key={item.label} style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '0.6rem',
-                        color: '#C8F135',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        marginBottom: 6,
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '0.78rem',
-                        color: '#888899',
-                        lineHeight: 1.5,
-                        overflowWrap: 'anywhere',
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <RagMarketContextPanel trades={trades} analysis={analysis} />
 
             <div>
               <p
@@ -2344,9 +2416,27 @@ export default function Intelligence() {
                   gap: 12,
                 }}
               >
-                {(analysis.insights || []).map((insight, i) => (
-                  <InsightCard key={i} insight={insight} />
-                ))}
+                {Array.isArray(analysis.insights) && analysis.insights.length > 0 ? (
+                  analysis.insights.map((insight, i) => (
+                    <InsightCard key={i} insight={insight} />
+                  ))
+                ) : (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      padding: '18px 20px',
+                      background: '#0c0c14',
+                      border: '1px dashed rgba(200,241,53,0.18)',
+                      borderRadius: 4,
+                      color: '#888899',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '0.78rem',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    No journal patterns detected yet. Add more complete real trades with setup tags, planned risk/reward, and outcomes to populate this section.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2406,7 +2496,7 @@ export default function Intelligence() {
                             padding: '10px 16px',
                             textAlign: 'left',
                             fontSize: '0.62rem',
-                            color: '#2a2a3e',
+                            color: '#555566',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase',
                             fontWeight: 500,
@@ -2518,7 +2608,7 @@ export default function Intelligence() {
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: '0.65rem',
-                  color: '#2a2a3e',
+                  color: '#555566',
                   margin: 0,
                 }}
               >
@@ -2599,7 +2689,7 @@ export default function Intelligence() {
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: '0.6rem',
-                      color: '#2a2a3e',
+                      color: '#555566',
                       letterSpacing: '0.08em',
                       marginBottom: 4,
                     }}
@@ -2632,7 +2722,7 @@ export default function Intelligence() {
                         style={{
                           fontFamily: "'JetBrains Mono', monospace",
                           fontSize: '0.6rem',
-                          color: '#2a2a3e',
+                          color: '#555566',
                         }}
                       >
                         Sources:
@@ -2644,7 +2734,7 @@ export default function Intelligence() {
                           style={{
                             fontFamily: "'JetBrains Mono', monospace",
                             fontSize: '0.6rem',
-                            color: '#333344',
+                            color: '#888899',
                             padding: '2px 6px',
                             border: '1px solid rgba(255,255,255,0.06)',
                             borderRadius: 3,

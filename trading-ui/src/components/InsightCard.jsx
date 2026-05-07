@@ -1,85 +1,158 @@
-function insightTone(severity) {
-  const value = String(severity || '').toLowerCase()
-  if (value === 'critical') return { color: '#FF3B3B', border: 'rgba(255,59,59,0.22)', background: 'rgba(255,59,59,0.06)' }
-  if (value === 'warning') return { color: '#FFB84D', border: 'rgba(255,184,77,0.22)', background: 'rgba(255,184,77,0.06)' }
-  if (value === 'positive') return { color: '#00FF87', border: 'rgba(0,255,135,0.2)', background: 'rgba(0,255,135,0.06)' }
-  return { color: '#C8F135', border: 'rgba(200,241,53,0.14)', background: 'rgba(200,241,53,0.04)' }
-}
+const SEVERITY_CONFIG = {
+  critical: {
+    border: "rgba(255,59,59,0.3)",
+    glow: "rgba(255,59,59,0.05)",
+    accent: "#FF3B3B",
+    label: "ACTION NEEDED",
+  },
+  warning: {
+    border: "rgba(200,241,53,0.25)",
+    glow: "rgba(200,241,53,0.04)",
+    accent: "#C8F135",
+    label: "INSIGHT",
+  },
+  positive: {
+    border: "rgba(0,255,135,0.25)",
+    glow: "rgba(0,255,135,0.04)",
+    accent: "#00FF87",
+    label: "POSITIVE",
+  },
+  info: {
+    border: "rgba(255,255,255,0.08)",
+    glow: "rgba(255,255,255,0.02)",
+    accent: "#888899",
+    label: "INFO",
+  },
+};
 
 function firstText(...values) {
   for (const value of values) {
-    const text = String(value ?? '').trim()
-    if (text) return text
+    const text = String(value ?? "").trim();
+    if (text) return text;
   }
-  return '-'
+  return "";
 }
 
 export default function InsightCard({ insight }) {
-  const item = insight && typeof insight === 'object' ? insight : {}
-  const tone = insightTone(item.severity || item.type)
-  const title = firstText(item.title, item.name, item.type, 'Pattern')
-  const body = firstText(item.message, item.description, item.insight, item.recommendation)
+  const item = insight && typeof insight === "object" ? insight : {};
+  const severity = String(item.severity || item.type || "info").toLowerCase();
+  const cfg = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
+  const title = firstText(item.title, item.name, item.type, "Journal Pattern");
+  const finding = firstText(
+    item.finding,
+    item.message,
+    item.description,
+    item.insight,
+    "No detailed finding returned yet. Add more complete journal trades to improve the analysis."
+  );
+  const recommendation = firstText(
+    item.recommendation,
+    item.next_step,
+    item.action,
+    "Review this pattern after more real trades are recorded."
+  );
 
   return (
     <div
       style={{
-        background: '#0c0c14',
-        border: `1px solid ${tone.border}`,
+        background: cfg.glow,
+        border: `1px solid ${cfg.border}`,
         borderRadius: 4,
-        padding: '14px 16px',
-        minWidth: 0,
+        padding: "20px 22px",
+        position: "relative",
+        overflow: "hidden",
+        transition: "transform 0.2s",
+      }}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.transform = "translateY(0)";
       }}
     >
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 10,
-          marginBottom: 8,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, ${cfg.accent}80, ${cfg.accent}20, transparent)`,
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
         }}
       >
-        <div
+        <h3
           style={{
-            color: tone.color,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '0.62rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            overflowWrap: 'anywhere',
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: "1.15rem",
+            color: "#fff",
+            letterSpacing: "0.03em",
+            margin: 0,
+            overflowWrap: "anywhere",
           }}
         >
           {title}
-        </div>
-        {(item.severity || item.type) && (
-          <span
-            style={{
-              color: tone.color,
-              background: tone.background,
-              border: `1px solid ${tone.border}`,
-              borderRadius: 3,
-              padding: '3px 6px',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.52rem',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {item.severity || item.type}
-          </span>
-        )}
+        </h3>
+
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "0.6rem",
+            color: cfg.accent,
+            letterSpacing: "0.12em",
+            padding: "3px 8px",
+            border: `1px solid ${cfg.border}`,
+            borderRadius: 3,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {cfg.label}
+        </span>
       </div>
-      <div
+
+      <p
         style={{
-          color: '#888899',
           fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '0.72rem',
-          lineHeight: 1.6,
-          overflowWrap: 'anywhere',
+          fontSize: "0.82rem",
+          color: "#888899",
+          lineHeight: 1.7,
+          marginBottom: 14,
+          overflowWrap: "anywhere",
         }}
       >
-        {body}
+        {finding}
+      </p>
+
+      <div
+        style={{
+          padding: "10px 14px",
+          background: "rgba(255,255,255,0.02)",
+          borderLeft: `2px solid ${cfg.accent}`,
+          borderRadius: "0 3px 3px 0",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "0.78rem",
+            color: cfg.accent,
+            lineHeight: 1.6,
+            margin: 0,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {"->"} {recommendation}
+        </p>
       </div>
     </div>
-  )
+  );
 }

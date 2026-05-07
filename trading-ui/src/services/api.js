@@ -4,17 +4,31 @@
  */
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
+const REQUEST_TIMEOUT_MS = 25000
 
 async function _request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || err.error || `Request failed: ${res.status}`)
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+      signal: controller.signal
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Backend request timed out. Check that Bullcast backend is running and responsive.")
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
   }
-  return res.json()
 }
 
 /** Search symbols by query string */
