@@ -40,6 +40,10 @@ from backend.ml.leakage_guard import (
 
 
 DEFAULT_OUTPUT_DIR = Path("backend/models")
+SYNTHETIC_DATA_WARNING = (
+    "Synthetic/dev rows detected. Metrics are for pipeline validation only and must not be "
+    "treated as real model performance."
+)
 
 
 def train_from_export(
@@ -70,6 +74,7 @@ def train_from_export(
     dataframe = pd.DataFrame(rows)
     dataframe = dataframe[dataframe[target_column].notna()].copy()
     dataframe = dataframe[dataframe[target_column] != ""].copy()
+    data_origin = _data_origin_report(dataframe.to_dict(orient="records"))
 
     if "date" in dataframe.columns:
         dataframe["_parsed_date"] = pd.to_datetime(dataframe["date"], errors="coerce")
@@ -104,6 +109,9 @@ def train_from_export(
     predictions = pipeline.predict(x_test)
     probabilities = _positive_class_probabilities(pipeline, x_test)
     metrics = _evaluate_model(y_test, predictions, probabilities, pipeline.classes_)
+    warnings = collect_warnings(rows, summary)
+    if data_origin["contains_synthetic_data"] and SYNTHETIC_DATA_WARNING not in warnings:
+        warnings.append(SYNTHETIC_DATA_WARNING)
 
     schema = make_feature_schema(
         selected_input_columns=selected_columns,
@@ -130,10 +138,11 @@ def train_from_export(
         "dataset_rows": len(dataframe),
         "train_rows": len(train_df),
         "test_rows": len(test_df),
+        "data_origin": data_origin,
         "selected_input_columns": selected_columns,
         "metrics": metrics,
         "quality_gate": quality_gate,
-        "warnings": collect_warnings(rows, summary),
+        "warnings": warnings,
     }
 
     output_path = Path(output_dir)
@@ -271,6 +280,42 @@ def _prepare_features(dataframe: pd.DataFrame, selected_columns: list[str]) -> p
         if column not in features.columns:
             features[column] = None
     return features[selected_columns]
+
+
+def _data_origin_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    total_rows = len(rows)
+    synthetic_rows = sum(1 for row in rows if _is_synthetic_row(row))
+    real_rows = total_rows - synthetic_rows
+
+    return {
+        "synthetic_rows": synthetic_rows,
+        "real_rows": real_rows,
+        "synthetic_ratio": round(synthetic_rows / total_rows, 4) if total_rows else 0.0,
+        "contains_synthetic_data": synthetic_rows > 0,
+        "dev_only": total_rows > 0 and synthetic_rows == total_rows,
+    }
+
+
+def _is_synthetic_row(row: dict[str, Any]) -> bool:
+    if _is_true(row.get("synthetic_flag")):
+        return True
+
+    if str(row.get("source_type") or "").strip().lower() == "synthetic_dev":
+        return True
+
+    return _has_synthetic_id(row.get("id")) or _has_synthetic_id(row.get("trade_id"))
+
+
+def _is_true(value: Any) -> bool:
+    if value is True:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return False
+
+
+def _has_synthetic_id(value: Any) -> bool:
+    return isinstance(value, str) and value.upper().startswith("SYN-")
 
 
 def _positive_class_probabilities(pipeline: Pipeline, x_test: pd.DataFrame) -> list[float] | None:
