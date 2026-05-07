@@ -871,12 +871,15 @@ function TrainingReportPanel() {
 function DataOriginPanel({ dataOrigin }) {
   const containsSyntheticData = dataOrigin?.contains_synthetic_data === true
   const devOnly = dataOrigin?.dev_only === true
+  const realRows = Number(dataOrigin?.real_rows ?? 0)
+  const realDataRequired = dataOrigin && realRows === 0
+  const statusBadge = getDataOriginStatusBadge(dataOrigin)
 
   return (
     <div
       style={{
         background: '#060608',
-        border: `1px solid ${containsSyntheticData ? 'rgba(255,184,77,0.26)' : 'rgba(200,241,53,0.08)'}`,
+        border: `1px solid ${statusBadge.border}`,
         borderRadius: 4,
         padding: 14,
         marginBottom: 16,
@@ -904,23 +907,7 @@ function DataOriginPanel({ dataOrigin }) {
           Data Origin
         </div>
 
-        {devOnly && (
-          <span
-            style={{
-              padding: '4px 8px',
-              background: 'rgba(255,184,77,0.1)',
-              border: '1px solid rgba(255,184,77,0.28)',
-              borderRadius: 3,
-              color: '#FFB84D',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.56rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            DEV-ONLY REPORT
-          </span>
-        )}
+        <DataOriginStatusBadge status={statusBadge} />
       </div>
 
       {!dataOrigin ? (
@@ -940,6 +927,46 @@ function DataOriginPanel({ dataOrigin }) {
         </div>
       ) : (
         <>
+          {(devOnly || realDataRequired) && (
+            <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+              {devOnly && (
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    background: 'rgba(255,184,77,0.06)',
+                    border: '1px solid rgba(255,184,77,0.2)',
+                    borderRadius: 4,
+                    color: '#FFB84D',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.68rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Synthetic pipeline validated. Real training pending.
+                </div>
+              )}
+
+              {realDataRequired && (
+                <div
+                  style={{
+                    padding: '6px 9px',
+                    background: 'rgba(255,59,59,0.08)',
+                    border: '1px solid rgba(255,59,59,0.24)',
+                    borderRadius: 4,
+                    color: '#FF3B3B',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.58rem',
+                    letterSpacing: '0.08em',
+                    lineHeight: 1.4,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  REAL DATA REQUIRED
+                </div>
+              )}
+            </div>
+          )}
+
           <div
             style={{
               display: 'grid',
@@ -974,6 +1001,74 @@ function DataOriginPanel({ dataOrigin }) {
         </>
       )}
     </div>
+  )
+}
+
+function getDataOriginStatusBadge(dataOrigin) {
+  if (!dataOrigin) {
+    return {
+      label: 'UNKNOWN',
+      color: '#888899',
+      background: 'rgba(136,136,153,0.08)',
+      border: 'rgba(136,136,153,0.18)',
+    }
+  }
+
+  const realRows = Number(dataOrigin.real_rows ?? 0)
+  const containsSyntheticData = dataOrigin.contains_synthetic_data === true
+
+  if (dataOrigin.dev_only === true) {
+    return {
+      label: 'DEV ONLY',
+      color: '#FFB84D',
+      background: 'rgba(255,184,77,0.1)',
+      border: 'rgba(255,184,77,0.28)',
+    }
+  }
+
+  if (containsSyntheticData && realRows > 0) {
+    return {
+      label: 'MIXED DATA',
+      color: '#FFB84D',
+      background: 'rgba(255,184,77,0.1)',
+      border: 'rgba(255,184,77,0.28)',
+    }
+  }
+
+  if (!containsSyntheticData && realRows > 0) {
+    return {
+      label: 'REAL DATA',
+      color: '#00FF87',
+      background: 'rgba(0,255,135,0.08)',
+      border: 'rgba(0,255,135,0.2)',
+    }
+  }
+
+  return {
+    label: 'UNKNOWN',
+    color: '#888899',
+    background: 'rgba(136,136,153,0.08)',
+    border: 'rgba(136,136,153,0.18)',
+  }
+}
+
+function DataOriginStatusBadge({ status }) {
+  return (
+    <span
+      style={{
+        padding: '4px 8px',
+        background: status.background,
+        border: `1px solid ${status.border}`,
+        borderRadius: 3,
+        color: status.color,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '0.56rem',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+      }}
+    >
+      {status.label}
+    </span>
   )
 }
 
