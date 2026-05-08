@@ -24,6 +24,27 @@ export function formatStorageMode(mode) {
   return mode === STORAGE_MODES.supabase ? 'Supabase' : 'Local'
 }
 
+export function getSupabasePersistenceDebugInfo() {
+  return {
+    supabaseConfigured: isSupabasePersistenceConfigured(),
+    hasSupabaseUrl: Boolean(supabaseUrl),
+    hasSupabaseAnonKey: Boolean(supabaseAnonKey),
+  }
+}
+
+export function getInitialStorageStatus() {
+  const mode = getInitialStorageMode()
+  return {
+    ...getSupabasePersistenceDebugInfo(),
+    mode,
+    lastSaveTarget: formatStorageMode(mode),
+    lastSaveErrorMessage: null,
+    action: 'initial',
+    rowsAttempted: 0,
+    rowsSaved: 0,
+  }
+}
+
 function getSupabaseClient() {
   if (!isSupabasePersistenceConfigured()) return null
   if (!supabaseClient) {
@@ -35,6 +56,55 @@ function getSupabaseClient() {
     })
   }
   return supabaseClient
+}
+
+function safeErrorMessage(error) {
+  if (!error) return null
+  const parts = [
+    error.message,
+    error.details,
+    error.hint,
+    error.code ? `code: ${error.code}` : null,
+  ].filter(Boolean)
+  return parts.length > 0 ? parts.join(' ') : String(error)
+}
+
+function logPersistenceStatus(status) {
+  if (typeof console === 'undefined') return
+  const payload = {
+    supabaseConfigured: status.supabaseConfigured,
+    lastSaveTarget: status.lastSaveTarget,
+    lastSaveErrorMessage: status.lastSaveErrorMessage,
+    action: status.action,
+    rowsAttempted: status.rowsAttempted,
+    rowsSaved: status.rowsSaved,
+  }
+  if (status.lastSaveErrorMessage) {
+    console.warn('Bullcast persistence status', payload)
+  } else {
+    console.info('Bullcast persistence status', payload)
+  }
+}
+
+function createStorageResult({ mode, ok = true, error = null, action, rowsAttempted = 0, rowsSaved = 0, history = null, trades = null }) {
+  const status = {
+    ...getSupabasePersistenceDebugInfo(),
+    mode,
+    ok,
+    error,
+    errorMessage: safeErrorMessage(error),
+    lastSaveTarget: formatStorageMode(mode),
+    lastSaveErrorMessage: safeErrorMessage(error),
+    action,
+    rowsAttempted,
+    rowsSaved,
+  }
+  logPersistenceStatus(status)
+  return {
+    ...status,
+    history,
+    trades,
+  }
 }
 
 function stableUuid(seed) {
@@ -165,7 +235,12 @@ export async function loadJournalTradesFromStorage() {
   const localTrades = safeArray(readStorage(STORAGE_KEYS.journal, []))
   const client = getSupabaseClient()
   if (!client) {
-    return { mode: STORAGE_MODES.local, trades: localTrades, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'load journal_trades',
+      rowsSaved: localTrades.length,
+      trades: localTrades,
+    })
   }
 
   try {
@@ -178,9 +253,20 @@ export async function loadJournalTradesFromStorage() {
 
     const trades = safeArray(data).map(fromJournalTradeRow)
     writeStorage(STORAGE_KEYS.journal, trades)
-    return { mode: STORAGE_MODES.supabase, trades, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'load journal_trades',
+      rowsSaved: trades.length,
+      trades,
+    })
   } catch (error) {
-    return { mode: STORAGE_MODES.local, trades: localTrades, error }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      error,
+      action: 'load journal_trades fallback',
+      rowsSaved: localTrades.length,
+      trades: localTrades,
+    })
   }
 }
 
@@ -189,7 +275,13 @@ export async function saveJournalTradesToStorage(trades) {
   const localSaved = writeStorage(STORAGE_KEYS.journal, safeTrades)
   const client = getSupabaseClient()
   if (!client) {
-    return { mode: STORAGE_MODES.local, ok: localSaved, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action: 'save journal_trades',
+      rowsAttempted: safeTrades.length,
+      rowsSaved: localSaved ? safeTrades.length : 0,
+    })
   }
 
   try {
@@ -201,16 +293,33 @@ export async function saveJournalTradesToStorage(trades) {
       if (error) throw error
     }
 
-    return { mode: STORAGE_MODES.supabase, ok: true, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'save journal_trades',
+      rowsAttempted: rows.length,
+      rowsSaved: rows.length,
+    })
   } catch (error) {
-    return { mode: STORAGE_MODES.local, ok: localSaved, error }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      error,
+      action: 'save journal_trades fallback',
+      rowsAttempted: safeTrades.length,
+      rowsSaved: localSaved ? safeTrades.length : 0,
+    })
   }
 }
 
 export async function deleteJournalTradeFromStorage(id) {
   const client = getSupabaseClient()
   if (!client) {
-    return { mode: STORAGE_MODES.local, ok: true, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'delete journal_trade',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+    })
   }
 
   try {
@@ -219,9 +328,20 @@ export async function deleteJournalTradeFromStorage(id) {
       .delete()
       .eq('id', createJournalTradeId(id))
     if (error) throw error
-    return { mode: STORAGE_MODES.supabase, ok: true, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'delete journal_trade',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+    })
   } catch (error) {
-    return { mode: STORAGE_MODES.local, ok: false, error }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error,
+      action: 'delete journal_trade fallback',
+      rowsAttempted: 1,
+    })
   }
 }
 
@@ -229,7 +349,13 @@ export async function saveTraderProfileToStorage(profile) {
   const localSaved = writeStorage(STORAGE_KEYS.traderProfile, profile)
   const client = getSupabaseClient()
   if (!client || !profile) {
-    return { mode: STORAGE_MODES.local, ok: localSaved, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action: 'save trader_profile',
+      rowsAttempted: profile ? 1 : 0,
+      rowsSaved: localSaved && profile ? 1 : 0,
+    })
   }
 
   try {
@@ -237,9 +363,21 @@ export async function saveTraderProfileToStorage(profile) {
       .from('trader_profiles')
       .insert({ user_id: null, profile })
     if (error) throw error
-    return { mode: STORAGE_MODES.supabase, ok: true, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'save trader_profile',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+    })
   } catch (error) {
-    return { mode: STORAGE_MODES.local, ok: localSaved, error }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      error,
+      action: 'save trader_profile fallback',
+      rowsAttempted: 1,
+      rowsSaved: localSaved ? 1 : 0,
+    })
   }
 }
 
@@ -247,7 +385,13 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
   const localHistory = appendStorageItem(STORAGE_KEYS.analysisHistory, entry, limit)
   const client = getSupabaseClient()
   if (!client) {
-    return { mode: STORAGE_MODES.local, history: localHistory, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'save analysis_history',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      history: localHistory,
+    })
   }
 
   try {
@@ -256,8 +400,21 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       .from('analysis_history')
       .insert({ user_id: null, prompt, response: entry })
     if (error) throw error
-    return { mode: STORAGE_MODES.supabase, history: localHistory, error: null }
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'save analysis_history',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      history: localHistory,
+    })
   } catch (error) {
-    return { mode: STORAGE_MODES.local, history: localHistory, error }
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      error,
+      action: 'save analysis_history fallback',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      history: localHistory,
+    })
   }
 }

@@ -7,6 +7,7 @@ import {
   deleteJournalTradeFromStorage,
   formatStorageMode,
   getInitialStorageMode,
+  getInitialStorageStatus,
   isSupabasePersistenceConfigured,
   loadJournalTradesFromStorage,
   saveJournalTradesToStorage,
@@ -770,6 +771,7 @@ function RecommendedLabel({ children }) {
 export default function Journal() {
   const [trades, setTrades] = useState(() => loadTrades());
   const [storageMode, setStorageMode] = useState(() => getInitialStorageMode());
+  const [storageStatus, setStorageStatus] = useState(() => getInitialStorageStatus());
   const [showModal, setShowModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [sortCol, setSortCol] = useState("date");
@@ -789,6 +791,7 @@ export default function Journal() {
     loadJournalTradesFromStorage().then((result) => {
       if (!active) return;
       setStorageMode(result.mode);
+      setStorageStatus(result);
       setTrades(result.trades.map((trade, index) => normalizeTrade(trade, index)));
       storageHydratedRef.current = true;
     });
@@ -801,7 +804,9 @@ export default function Journal() {
 
     let active = true;
     saveJournalTradesToStorage(trades).then((result) => {
-      if (active) setStorageMode(result.mode);
+      if (!active) return;
+      setStorageMode(result.mode);
+      setStorageStatus(result);
     });
 
     return () => { active = false; };
@@ -832,6 +837,7 @@ export default function Journal() {
     setTrades(prev => prev.filter(t => t.id !== id));
     deleteJournalTradeFromStorage(id).then((result) => {
       setStorageMode(result.mode);
+      setStorageStatus(result);
     });
   }, []);
 
@@ -863,10 +869,15 @@ export default function Journal() {
       const existing = trades.map((trade, index) => normalizeTrade(trade, index));
       const { merged, updatedCount } = mergeImportedTrades(existing, importedTrades);
       const syntheticImported = importedTrades.some(isSyntheticTrade);
+      let saveWarning = "";
 
       if (importedTrades.length > 0) {
         const saveResult = await saveJournalTradesToStorage(merged);
         setStorageMode(saveResult.mode);
+        setStorageStatus(saveResult);
+        if (saveResult.lastSaveErrorMessage) {
+          saveWarning = `Supabase save failed: ${saveResult.lastSaveErrorMessage}. Saved to localStorage instead.`;
+        }
         setTrades(merged);
       }
 
@@ -876,6 +887,7 @@ export default function Journal() {
         skippedCount,
         validationErrors,
         syntheticImported,
+        saveWarning,
         error: "",
       });
     } catch (error) {
@@ -1035,11 +1047,12 @@ export default function Journal() {
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.7rem", color: "#C8F135", letterSpacing: "0.16em", textTransform: "uppercase" }}>
               Personal
             </div>
-            <StorageModeIndicator mode={storageMode} />
+            <StorageModeIndicator mode={storageMode} status={storageStatus} />
           </div>
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2rem,5vw,3.5rem)", color: "#e5e5e5", margin: 0, letterSpacing: "0.04em", lineHeight: 1 }}>
             Trade Journal
           </h1>
+          <StorageDebugStatus status={storageStatus} />
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input
@@ -1134,8 +1147,25 @@ export default function Journal() {
           ]}
           messages={[
             ...(importSummary.syntheticImported ? ["Synthetic/sample trades are for development only. Use real journal history for real model training."] : []),
+            ...(importSummary.saveWarning ? [importSummary.saveWarning] : []),
             ...importSummary.validationErrors.slice(0, 6),
             ...(importSummary.validationErrors.length > 6 ? [`${importSummary.validationErrors.length - 6} more validation errors.`] : []),
+          ]}
+        />
+      )}
+
+      {storageStatus?.lastSaveErrorMessage && (
+        <JournalActionSummary
+          tone="warning"
+          title="Supabase Save Fallback"
+          metrics={[
+            ["Configured", String(storageStatus.supabaseConfigured === true)],
+            ["Last Save Target", storageStatus.lastSaveTarget || formatStorageMode(storageMode)],
+            ["Rows Attempted", storageStatus.rowsAttempted ?? 0],
+          ]}
+          messages={[
+            `Supabase save failed: ${storageStatus.lastSaveErrorMessage}`,
+            "Bullcast saved the latest journal data to localStorage instead.",
           ]}
         />
       )}
@@ -1379,8 +1409,9 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
   );
 }
 
-function StorageModeIndicator({ mode }) {
+function StorageModeIndicator({ mode, status }) {
   const isSupabase = mode === "supabase";
+  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; lastSaveTarget: ${status?.lastSaveTarget || formatStorageMode(mode)}; lastSaveError: ${status?.lastSaveErrorMessage || "none"}`;
   return (
     <span style={{
       padding: "3px 7px",
@@ -1393,9 +1424,28 @@ function StorageModeIndicator({ mode }) {
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       lineHeight: 1.3,
-    }}>
+    }} title={title}>
       Storage: {formatStorageMode(mode)}
     </span>
+  );
+}
+
+function StorageDebugStatus({ status }) {
+  if (!status) return null;
+  return (
+    <div style={{
+      marginTop: 6,
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: "0.58rem",
+      color: status.lastSaveErrorMessage ? "#FFB84D" : "#555566",
+      lineHeight: 1.6,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    }}>
+      supabaseConfigured: {String(status.supabaseConfigured === true)}
+      {" | "}last save target: {status.lastSaveTarget || "Local"}
+      {" | "}last save error: {status.lastSaveErrorMessage || "none"}
+    </div>
   );
 }
 
