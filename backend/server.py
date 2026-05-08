@@ -120,6 +120,7 @@ async def run_strategy(
 from backend.market_data import search_symbols, list_assets, fetch_ohlcv, fetch_quote
 from backend.backtesting import run_backtest
 from pydantic import BaseModel, Field
+from backend.intelligence.mistake_summary import build_mistake_summary
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -143,6 +144,10 @@ class AskRequest(BaseModel):
 class TradeAnalysisRequest(BaseModel):
     trades: List[TradeEntry] = Field(default_factory=list)
     trade: TradeEntry
+
+class MistakeSummaryRequest(BaseModel):
+    trades: List[TradeEntry] = Field(default_factory=list)
+    limit: int = Field(default=100, ge=1, le=500)
 
 class TradeDatasetExportRequest(BaseModel):
     trades: List[dict] = Field(default_factory=list)
@@ -252,6 +257,23 @@ async def intelligence_trade_analysis(req: TradeAnalysisRequest):
         raise HTTPException(
             status_code=500,
             detail="Trade analysis failed. Please try again."
+        )
+
+
+@app.post("/api/intelligence/mistake-summary")
+async def intelligence_mistake_summary(req: MistakeSummaryRequest):
+    """
+    Summarize repeated journal mistakes using Gemini when configured.
+    Falls back to deterministic local analysis when GEMINI_API_KEY is absent.
+    """
+    try:
+        trades_dicts = [t.model_dump() for t in req.trades]
+        return build_mistake_summary(trades_dicts, limit=req.limit)
+    except Exception as e:
+        logger.error(f"Mistake summary error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Mistake summary failed. Please try again."
         )
 
 

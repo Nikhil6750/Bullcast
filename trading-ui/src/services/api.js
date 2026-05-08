@@ -125,6 +125,12 @@ export const askIntelligence = (trades, question) =>
     body: JSON.stringify({ trades, question })
   })
 
+export const summarizeJournalMistakes = (trades, limit = 100) =>
+  _request('/api/intelligence/mistake-summary', {
+    method: 'POST',
+    body: JSON.stringify({ trades, limit })
+  })
+
 export const analyzeFutureTrade = (trades, trade) =>
   _request('/api/intelligence/trade-analysis', {
     method: 'POST',

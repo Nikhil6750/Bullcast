@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import InsightCard from '../components/InsightCard'
 import PatternHeatmap from '../components/PatternHeatmap'
-import { analyzeJournal, askIntelligence, exportTradeDataset, getEdgarContext, getTrainingReport } from '../services/api'
+import {
+  analyzeJournal,
+  askIntelligence,
+  exportTradeDataset,
+  getEdgarContext,
+  getTrainingReport,
+  summarizeJournalMistakes,
+} from '../services/api'
 import { STORAGE_KEYS, appendStorageItem, readStorage, writeStorage } from '../services/storage'
 
 const STORAGE_KEY = STORAGE_KEYS.journal
@@ -2062,6 +2069,251 @@ function EdgarTd({ children }) {
   )
 }
 
+function MistakeSummaryPanel({ trades, summary, loading, error, onSummarize }) {
+  const hasTrades = trades.length > 0
+  const section = (title, items) => {
+    const safeItems = Array.isArray(items) && items.length > 0 ? items : ['No clear pattern found yet.']
+
+    return (
+      <div>
+        <p
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.62rem',
+            color: '#555566',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: 8,
+          }}
+        >
+          {title}
+        </p>
+        <ul
+          style={{
+            margin: 0,
+            paddingLeft: 18,
+            color: '#c7c7d1',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.74rem',
+            lineHeight: 1.7,
+          }}
+        >
+          {safeItems.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  return (
+    <section
+      style={{
+        background: '#0c0c14',
+        border: '1px solid rgba(200,241,53,0.1)',
+        borderRadius: 4,
+        overflow: 'hidden',
+      }}
+    >
+      <style>{`
+        @media(max-width: 760px) {
+          .mistake-summary-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+          flexWrap: 'wrap',
+          padding: '18px 20px',
+          borderBottom: '1px solid rgba(200,241,53,0.06)',
+        }}
+      >
+        <div style={{ maxWidth: 620 }}>
+          <p
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.64rem',
+              color: '#C8F135',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Journal Mistake Summary
+          </p>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.78rem',
+              color: '#888899',
+              lineHeight: 1.6,
+            }}
+          >
+            Server-side Gemini review of repeated mistakes, setup weakness, and confidence issues from your saved Journal trades.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onSummarize}
+          disabled={!hasTrades || loading}
+          style={{
+            border: '1px solid rgba(200,241,53,0.35)',
+            background: hasTrades ? '#C8F135' : 'transparent',
+            color: hasTrades ? '#060608' : '#555566',
+            borderRadius: 4,
+            padding: '10px 16px',
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: '0.95rem',
+            letterSpacing: '0.06em',
+            cursor: hasTrades && !loading ? 'pointer' : 'not-allowed',
+            opacity: loading ? 0.75 : 1,
+          }}
+        >
+          {loading ? 'Summarizing...' : 'Summarize Journal Mistakes'}
+        </button>
+      </div>
+
+      <div style={{ padding: '18px 20px' }}>
+        {!hasTrades && (
+          <p
+            style={{
+              margin: 0,
+              color: '#888899',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.78rem',
+              lineHeight: 1.6,
+            }}
+          >
+            Add Journal trades before generating a mistake summary.
+          </p>
+        )}
+
+        {error && (
+          <div
+            style={{
+              padding: '12px 14px',
+              background: 'rgba(255,59,59,0.06)',
+              border: '1px solid rgba(255,59,59,0.2)',
+              borderRadius: 4,
+              color: '#FF3B3B',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.76rem',
+              marginBottom: summary ? 16 : 0,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {summary && (
+          <div style={{ display: 'grid', gap: 18 }}>
+            <div
+              style={{
+                padding: '14px 16px',
+                background: 'rgba(200,241,53,0.04)',
+                border: '1px solid rgba(200,241,53,0.1)',
+                borderRadius: 4,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.62rem',
+                    color: '#C8F135',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                  }}
+                >
+                  {summary.local_fallback ? 'Local fallback' : summary.model || 'Gemini'}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.62rem',
+                    color: '#555566',
+                  }}
+                >
+                  {summary.trade_count ?? trades.length} trade(s)
+                </span>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: '#f3f3f6',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '0.82rem',
+                  lineHeight: 1.7,
+                }}
+              >
+                {summary.summary}
+              </p>
+
+              {summary.local_fallback && summary.fallback_reason && (
+                <p
+                  style={{
+                    margin: '10px 0 0',
+                    color: '#888899',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.72rem',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Fallback reason: {summary.fallback_reason}
+                </p>
+              )}
+            </div>
+
+            <div
+              className="mistake-summary-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 16,
+              }}
+            >
+              {section('Repeated Mistakes', summary.repeated_mistakes)}
+              {section('Behavior Patterns', summary.behavioral_patterns)}
+              {section('Weak Setups', summary.weak_setups)}
+              {section('Confidence Issues', summary.confidence_issues)}
+            </div>
+
+            {section('Improvement Checklist', summary.improvement_checklist)}
+
+            <p
+              style={{
+                margin: 0,
+                color: '#777783',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '0.7rem',
+                lineHeight: 1.6,
+              }}
+            >
+              {summary.educational_disclaimer}
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export default function Intelligence() {
   const [trades, setTrades] = useState(() => {
     try {
@@ -2080,6 +2332,10 @@ export default function Intelligence() {
   const [asking, setAsking] = useState(false)
   const [askError, setAskError] = useState(null)
   const [chatHistory, setChatHistory] = useState([])
+
+  const [mistakeSummary, setMistakeSummary] = useState(null)
+  const [mistakeLoading, setMistakeLoading] = useState(false)
+  const [mistakeError, setMistakeError] = useState(null)
 
   const inputRef = useRef(null)
 
@@ -2156,6 +2412,38 @@ export default function Intelligence() {
       setChatHistory((h) => h.slice(0, -1))
     } finally {
       setAsking(false)
+    }
+  }
+
+  const runMistakeSummary = async () => {
+    if (trades.length === 0) {
+      setMistakeSummary(null)
+      setMistakeError('Add Journal trades before summarizing mistakes.')
+      return
+    }
+
+    setMistakeLoading(true)
+    setMistakeError(null)
+
+    try {
+      const result = await summarizeJournalMistakes(trades, 100)
+      setMistakeSummary(result)
+      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+        type: 'mistake_summary',
+        timestamp: new Date().toISOString(),
+        trade_count: trades.length,
+        method: result?.method,
+        model: result?.model,
+        local_fallback: result?.local_fallback === true,
+      })
+    } catch (e) {
+      setMistakeError(
+        e.message?.includes('fetch')
+          ? 'Could not connect to backend. Make sure the server is running.'
+          : 'Mistake summary failed. Please try again.'
+      )
+    } finally {
+      setMistakeLoading(false)
     }
   }
 
@@ -2268,6 +2556,13 @@ export default function Intelligence() {
 
       {trades.length === 0 && (
         <div style={{ maxWidth: 760, marginTop: 20, display: 'grid', gap: 20 }}>
+          <MistakeSummaryPanel
+            trades={trades}
+            summary={mistakeSummary}
+            loading={mistakeLoading}
+            error={mistakeError}
+            onSummarize={runMistakeSummary}
+          />
           <DatasetReadinessPanel trades={trades} />
           <RealDataCollectionPlan trades={trades} />
           <RagMarketContextPanel trades={trades} analysis={null} />
@@ -2435,6 +2730,14 @@ export default function Intelligence() {
             </div>
 
             <RagMarketContextPanel trades={trades} analysis={analysis} />
+
+            <MistakeSummaryPanel
+              trades={trades}
+              summary={mistakeSummary}
+              loading={mistakeLoading}
+              error={mistakeError}
+              onSummarize={runMistakeSummary}
+            />
 
             <div>
               <p
