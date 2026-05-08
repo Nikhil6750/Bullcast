@@ -3,17 +3,22 @@ import * as XLSX from "xlsx";
 import { exportTradeDataset } from "../services/api";
 import { STORAGE_KEYS, readStorage } from "../services/storage";
 import {
+  clearLocalJournalStorage,
+  clearSupabaseJournalTrades,
   createJournalTradeId,
   deleteJournalTradeFromStorage,
   formatStorageMode,
   getInitialStorageMode,
   getInitialStorageStatus,
+  getSupabasePersistenceDiagnostic,
   isSupabasePersistenceConfigured,
   loadJournalTradesFromStorage,
   saveJournalTradesToStorage,
 } from "../services/supabaseStorage";
 
 const STORAGE_KEY = STORAGE_KEYS.journal;
+const LARGE_LOCAL_DATASET_THRESHOLD = 1000;
+const JOURNAL_PAGE_SIZE = 100;
 
 const ASSET_TYPES = ["stock", "forex", "crypto", "index", "unknown"];
 const SETUP_TAGS = [
@@ -219,24 +224,29 @@ function normalizeTrade(trade, index = null) {
   return normalized;
 }
 
-function loadTrades() {
+function readLocalJournalRows() {
   try {
     const parsed = readStorage(STORAGE_KEY, []);
-    return Array.isArray(parsed) ? parsed.map((trade, index) => normalizeTrade(trade, index)) : [];
+    return Array.isArray(parsed) ? parsed.filter(trade => trade && typeof trade === "object") : [];
   } catch {
     return [];
   }
 }
 
 function loadRawStoredTrades() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(trade => trade && typeof trade === "object") : [];
-  } catch {
-    return [];
-  }
+  return readLocalJournalRows();
+}
+
+function getInitialJournalState() {
+  const localRows = readLocalJournalRows();
+  const localRowCount = localRows.length;
+  const supabaseConfigured = isSupabasePersistenceConfigured();
+
+  return {
+    trades: supabaseConfigured ? [] : localRows.map((trade, index) => normalizeTrade(trade, index)),
+    localRowCount,
+    largeLocalDataset: localRowCount > LARGE_LOCAL_DATASET_THRESHOLD,
+  };
 }
 
 function calcPnl(type, entry, exit, qty) {
@@ -769,31 +779,55 @@ function RecommendedLabel({ children }) {
 
 // --- Main Journal Page ---
 export default function Journal() {
-  const [trades, setTrades] = useState(() => loadTrades());
+  const initialJournalRef = useRef(null);
+  if (!initialJournalRef.current) initialJournalRef.current = getInitialJournalState();
+
+  const [trades, setTrades] = useState(() => initialJournalRef.current.trades);
   const [storageMode, setStorageMode] = useState(() => getInitialStorageMode());
-  const [storageStatus, setStorageStatus] = useState(() => getInitialStorageStatus());
+  const [storageStatus, setStorageStatus] = useState(() => getInitialStorageStatus({
+    lastLoadTarget: isSupabasePersistenceConfigured() ? null : "local",
+    loadedRowCount: isSupabasePersistenceConfigured() ? 0 : initialJournalRef.current.localRowCount,
+  }));
+  const [largeLocalDatasetCount, setLargeLocalDatasetCount] = useState(() => (
+    initialJournalRef.current.largeLocalDataset ? initialJournalRef.current.localRowCount : 0
+  ));
   const [showModal, setShowModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(0);
   const [importing, setImporting] = useState(false);
+  const [loadingJournal, setLoadingJournal] = useState(() => isSupabasePersistenceConfigured());
+  const [clearingDataset, setClearingDataset] = useState(false);
   const [importSummary, setImportSummary] = useState(null);
+  const [clearSummary, setClearSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
   const [mlDatasetExporting, setMlDatasetExporting] = useState(false);
   const [mlDatasetExportSummary, setMlDatasetExportSummary] = useState(null);
   const importInputRef = useRef(null);
   const storageHydratedRef = useRef(!isSupabasePersistenceConfigured());
+  const firstAutoSaveRef = useRef(true);
+  const suppressNextSaveRef = useRef(false);
 
   useEffect(() => {
     if (!isSupabasePersistenceConfigured()) return undefined;
 
     let active = true;
+    setLoadingJournal(true);
     loadJournalTradesFromStorage().then((result) => {
       if (!active) return;
       setStorageMode(result.mode);
       setStorageStatus(result);
-      setTrades(result.trades.map((trade, index) => normalizeTrade(trade, index)));
+      if (result.mode === "local" && (result.loadedRowCount ?? 0) > LARGE_LOCAL_DATASET_THRESHOLD) {
+        setLargeLocalDatasetCount(result.loadedRowCount);
+      }
+      suppressNextSaveRef.current = true;
+      setTrades((result.trades || []).map((trade, index) => normalizeTrade(trade, index)));
+      setPage(0);
       storageHydratedRef.current = true;
+    }).finally(() => {
+      if (active) setLoadingJournal(false);
     });
 
     return () => { active = false; };
@@ -801,6 +835,15 @@ export default function Journal() {
 
   useEffect(() => {
     if (!storageHydratedRef.current) return undefined;
+    if (firstAutoSaveRef.current) {
+      firstAutoSaveRef.current = false;
+      suppressNextSaveRef.current = false;
+      return undefined;
+    }
+    if (suppressNextSaveRef.current) {
+      suppressNextSaveRef.current = false;
+      return undefined;
+    }
 
     let active = true;
     saveJournalTradesToStorage(trades).then((result) => {
@@ -811,6 +854,11 @@ export default function Journal() {
 
     return () => { active = false; };
   }, [trades]);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(trades.length / JOURNAL_PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [page, trades.length]);
 
   const saveTrade = useCallback((trade) => {
     const normalized = normalizeTrade(trade);
@@ -847,6 +895,7 @@ export default function Journal() {
 
     setImporting(true);
     setImportSummary(null);
+    setClearSummary(null);
 
     try {
       const rows = await parseJournalImportFile(file);
@@ -877,14 +926,28 @@ export default function Journal() {
         setStorageStatus(saveResult);
         if (saveResult.lastSaveErrorMessage) {
           saveWarning = `Supabase save failed: ${saveResult.lastSaveErrorMessage}. Saved to localStorage instead.`;
+          suppressNextSaveRef.current = true;
+          setTrades(merged);
+          setPage(0);
+        } else if (saveResult.mode === "supabase") {
+          const loadResult = await loadJournalTradesFromStorage();
+          setStorageMode(loadResult.mode);
+          setStorageStatus(loadResult);
+          suppressNextSaveRef.current = true;
+          setTrades((loadResult.trades || []).map((trade, index) => normalizeTrade(trade, index)));
+          setPage(0);
+        } else {
+          suppressNextSaveRef.current = true;
+          setTrades(merged);
+          setPage(0);
         }
-        setTrades(merged);
       }
 
       setImportSummary({
         importedCount: importedTrades.length,
         updatedCount,
         skippedCount,
+        loadedCount: getSupabasePersistenceDiagnostic().loadedRowCount ?? (importedTrades.length > 0 ? merged.length : trades.length),
         validationErrors,
         syntheticImported,
         saveWarning,
@@ -904,6 +967,59 @@ export default function Journal() {
       if (event.target) event.target.value = "";
     }
   }, [trades]);
+
+  const clearLocalDataset = useCallback(() => {
+    const result = clearLocalJournalStorage();
+    setStorageMode(result.mode);
+    setStorageStatus(result);
+    suppressNextSaveRef.current = true;
+    setTrades([]);
+    setPage(0);
+    setLargeLocalDatasetCount(0);
+    setShowClearModal(false);
+    setClearSummary({
+      tone: result.lastSaveErrorMessage ? "error" : "success",
+      title: result.lastSaveErrorMessage ? "Clear Local Dataset Failed" : "Local Dataset Cleared",
+      messages: result.lastSaveErrorMessage ? [result.lastSaveErrorMessage] : ["Local journal, trader profile, and analysis history data were removed from this browser."],
+    });
+  }, []);
+
+  const clearLocalAndSupabaseDataset = useCallback(async () => {
+    setClearingDataset(true);
+    setClearSummary(null);
+
+    try {
+      const supabaseResult = await clearSupabaseJournalTrades();
+      setStorageMode(supabaseResult.mode);
+      setStorageStatus(supabaseResult);
+
+      if (supabaseResult.lastSaveErrorMessage) {
+        setClearSummary({
+          tone: "error",
+          title: "Clear Supabase Dataset Failed",
+          messages: [supabaseResult.lastSaveErrorMessage, "No local data was cleared."],
+        });
+        return;
+      }
+
+      const localResult = clearLocalJournalStorage();
+      setStorageStatus({ ...localResult, lastLoadTarget: supabaseResult.lastLoadTarget ?? "supabase", loadedRowCount: 0 });
+      suppressNextSaveRef.current = true;
+      setTrades([]);
+      setPage(0);
+      setLargeLocalDatasetCount(0);
+      setShowClearModal(false);
+      setClearSummary({
+        tone: localResult.lastSaveErrorMessage ? "warning" : "success",
+        title: localResult.lastSaveErrorMessage ? "Supabase Cleared, Local Clear Failed" : "Local And Supabase Dataset Cleared",
+        messages: localResult.lastSaveErrorMessage
+          ? [localResult.lastSaveErrorMessage]
+          : ["Supabase journal_trades and local browser journal data were cleared."],
+      });
+    } finally {
+      setClearingDataset(false);
+    }
+  }, []);
 
   const exportRealTradesJSON = useCallback(() => {
     const localTrades = loadRawStoredTrades();
@@ -993,6 +1109,7 @@ export default function Journal() {
   }, []);
 
   const toggleSort = (col) => {
+    setPage(0);
     if (sortCol === col) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
     } else {
@@ -1015,6 +1132,9 @@ export default function Journal() {
     });
     return arr;
   }, [trades, sortCol, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / JOURNAL_PAGE_SIZE));
+  const visibleTrades = sorted.slice(page * JOURNAL_PAGE_SIZE, (page + 1) * JOURNAL_PAGE_SIZE);
 
   // Summary calculations
   const summary = useMemo(() => {
@@ -1063,16 +1183,26 @@ export default function Journal() {
             style={{ display: "none" }}
           />
           <button onClick={() => importInputRef.current?.click()}
-            disabled={importing}
+            disabled={importing || loadingJournal}
             style={{
-              padding: "10px 18px", borderRadius: 4, cursor: importing ? "not-allowed" : "pointer",
+              padding: "10px 18px", borderRadius: 4, cursor: importing || loadingJournal ? "not-allowed" : "pointer",
               background: "transparent", border: "1px solid rgba(200,241,53,0.25)",
-              color: importing ? "#555566" : "#C8F135", fontFamily: "'JetBrains Mono', monospace",
+              color: importing || loadingJournal ? "#555566" : "#C8F135", fontFamily: "'JetBrains Mono', monospace",
               fontSize: "0.72rem", letterSpacing: "0.06em", transition: "all 0.15s",
-              opacity: importing ? 0.65 : 1,
+              opacity: importing || loadingJournal ? 0.65 : 1,
             }}
           >
-            {importing ? "Importing..." : "Import CSV/XLSX"}
+            {importing ? "Importing..." : loadingJournal ? "Loading..." : "Import CSV/XLSX"}
+          </button>
+          <button onClick={() => setShowClearModal(true)}
+            style={{
+              padding: "10px 18px", borderRadius: 4, cursor: "pointer",
+              background: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.24)",
+              color: "#FF6B6B", fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.72rem", letterSpacing: "0.06em", transition: "all 0.15s",
+            }}
+          >
+            Clear Current Dataset
           </button>
           {trades.length > 0 && (
             <button onClick={() => downloadCSV(trades)}
@@ -1136,6 +1266,31 @@ export default function Journal() {
         {" "}This exports a dataset for ML readiness review only. It does not train a model.
       </div>
 
+      {loadingJournal && (
+        <JournalActionSummary
+          tone="success"
+          title="Loading Journal"
+          messages={["Loading journal rows from Supabase before using any local fallback."]}
+        />
+      )}
+
+      {largeLocalDatasetCount > LARGE_LOCAL_DATASET_THRESHOLD && (
+        <JournalActionSummary
+          tone="warning"
+          title="Large Local Dataset Detected"
+          metrics={[["Local Rows", largeLocalDatasetCount]]}
+          messages={["Large local dataset detected. This may slow down the browser. Clear local dataset after confirming Supabase sync."]}
+        />
+      )}
+
+      {clearSummary && (
+        <JournalActionSummary
+          tone={clearSummary.tone}
+          title={clearSummary.title}
+          messages={clearSummary.messages}
+        />
+      )}
+
       {importSummary && (
         <JournalActionSummary
           tone={importSummary.error ? "error" : importSummary.syntheticImported ? "warning" : "success"}
@@ -1144,6 +1299,7 @@ export default function Journal() {
             ["Imported", importSummary.importedCount],
             ["Updated", importSummary.updatedCount],
             ["Skipped", importSummary.skippedCount],
+            ["Loaded Rows", importSummary.loadedCount ?? trades.length],
           ]}
           messages={[
             ...(importSummary.syntheticImported ? ["Synthetic/sample trades are for development only. Use real journal history for real model training."] : []),
@@ -1257,11 +1413,11 @@ export default function Journal() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((t, i) => (
+              {visibleTrades.map((t, i) => (
                 <tr key={t.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.02)" }}
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(200,241,53,0.02)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <Td style={{ color: "#333344" }}>{i + 1}</Td>
+                  <Td style={{ color: "#333344" }}>{page * JOURNAL_PAGE_SIZE + i + 1}</Td>
                   <Td>{t.date}</Td>
                   <Td style={{ fontWeight: 700, color: "#e5e5e5" }}>{t.symbol}</Td>
                   <Td style={{ fontWeight: 700, color: t.type === "LONG" ? "#C8F135" : "#FF3B3B" }}>{t.type}</Td>
@@ -1330,11 +1486,52 @@ export default function Journal() {
               </tr>
             </tbody>
           </table>
+          {pageCount > 1 && (
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              padding: "14px 0 0",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.68rem",
+              color: "#555566",
+            }}>
+              <span>
+                Showing {page * JOURNAL_PAGE_SIZE + 1}-{Math.min((page + 1) * JOURNAL_PAGE_SIZE, sorted.length)} of {sorted.length}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  style={paginationButtonStyle(page === 0)}
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))}
+                  disabled={page >= pageCount - 1}
+                  style={paginationButtonStyle(page >= pageCount - 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Modal */}
       {showModal && <AddTradeModal onClose={closeModal} onSave={saveTrade} initialTrade={editingTrade} />}
+      {showClearModal && (
+        <ClearDatasetModal
+          clearing={clearingDataset}
+          supabaseConfigured={storageStatus?.supabaseConfigured === true}
+          onClose={() => setShowClearModal(false)}
+          onClearLocal={clearLocalDataset}
+          onClearAll={clearLocalAndSupabaseDataset}
+        />
+      )}
     </div>
   );
 }
@@ -1411,7 +1608,8 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
 
 function StorageModeIndicator({ mode, status }) {
   const isSupabase = mode === "supabase";
-  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; lastSaveTarget: ${status?.lastSaveTarget || formatStorageMode(mode)}; lastSaveError: ${status?.lastSaveErrorMessage || "none"}`;
+  const label = isSupabase ? "Supabase" : "Local fallback";
+  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; lastLoadTarget: ${status?.lastLoadTarget || "null"}; lastSaveTarget: ${status?.lastSaveTarget || "null"}; lastSaveError: ${status?.lastSaveErrorMessage || "null"}`;
   return (
     <span style={{
       padding: "3px 7px",
@@ -1425,7 +1623,7 @@ function StorageModeIndicator({ mode, status }) {
       textTransform: "uppercase",
       lineHeight: 1.3,
     }} title={title}>
-      Storage: {formatStorageMode(mode)}
+      Storage: {label}
     </span>
   );
 }
@@ -1443,10 +1641,108 @@ function StorageDebugStatus({ status }) {
       textTransform: "uppercase",
     }}>
       supabaseConfigured: {String(status.supabaseConfigured === true)}
-      {" | "}last save target: {status.lastSaveTarget || "Local"}
-      {" | "}last save error: {status.lastSaveErrorMessage || "none"}
+      {" | "}lastLoadTarget: {status.lastLoadTarget || "null"}
+      {" | "}lastSaveTarget: {status.lastSaveTarget || "null"}
+      {" | "}loadedRowCount: {status.loadedRowCount ?? 0}
+      {" | "}lastSaveErrorMessage: {status.lastSaveErrorMessage || "null"}
     </div>
   );
+}
+
+function ClearDatasetModal({ clearing, supabaseConfigured, onClose, onClearLocal, onClearAll }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 110,
+        background: "rgba(0,0,0,0.78)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="glass-panel"
+        style={{
+          width: "100%", maxWidth: 520,
+          padding: 22,
+          border: "1px solid rgba(255,184,77,0.2)",
+        }}
+      >
+        <div style={{
+          fontFamily: "'Bebas Neue', sans-serif",
+          fontSize: "1.35rem",
+          color: "#FFB84D",
+          letterSpacing: "0.06em",
+          marginBottom: 12,
+        }}>
+          Clear Current Dataset
+        </div>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.76rem",
+          color: "#888899",
+          lineHeight: 1.7,
+          marginBottom: 18,
+        }}>
+          This will remove the currently loaded journal dataset from this browser. If Supabase is connected, choose whether to also clear Supabase journal_trades.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button onClick={onClose} disabled={clearing} style={modalButtonStyle("neutral", clearing)}>
+            Cancel
+          </button>
+          <button onClick={onClearLocal} disabled={clearing} style={modalButtonStyle("warning", clearing)}>
+            Clear Local Only
+          </button>
+          <button
+            onClick={onClearAll}
+            disabled={clearing || !supabaseConfigured}
+            style={modalButtonStyle("danger", clearing || !supabaseConfigured)}
+            title={supabaseConfigured ? "" : "Supabase is not configured in this build."}
+          >
+            {clearing ? "Clearing..." : "Clear Local + Supabase"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function paginationButtonStyle(disabled) {
+  return {
+    padding: "7px 11px",
+    borderRadius: 4,
+    border: "1px solid rgba(200,241,53,0.16)",
+    background: "#060608",
+    color: disabled ? "#333344" : "#C8F135",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: "0.66rem",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+  };
+}
+
+function modalButtonStyle(tone, disabled) {
+  const colors = {
+    neutral: ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.12)", "#888899"],
+    warning: ["rgba(255,184,77,0.08)", "rgba(255,184,77,0.28)", "#FFB84D"],
+    danger: ["rgba(255,59,59,0.08)", "rgba(255,59,59,0.28)", "#FF6B6B"],
+  };
+  const [background, border, color] = colors[tone] || colors.neutral;
+  return {
+    padding: "9px 13px",
+    borderRadius: 4,
+    border: `1px solid ${border}`,
+    background,
+    color: disabled ? "#333344" : color,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.65 : 1,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: "0.68rem",
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+  };
 }
 
 function SummaryCard({ label, value, color }) {

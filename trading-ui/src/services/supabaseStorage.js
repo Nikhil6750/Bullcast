@@ -11,6 +11,7 @@ const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').tri
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 let supabaseClient = null
+let lastStorageDiagnostic = null
 
 export function isSupabasePersistenceConfigured() {
   return Boolean(supabaseUrl && supabaseAnonKey)
@@ -24,24 +25,41 @@ export function formatStorageMode(mode) {
   return mode === STORAGE_MODES.supabase ? 'Supabase' : 'Local'
 }
 
-export function getSupabasePersistenceDebugInfo() {
+function baseDiagnostic() {
   return {
     supabaseConfigured: isSupabasePersistenceConfigured(),
-    hasSupabaseUrl: Boolean(supabaseUrl),
-    hasSupabaseAnonKey: Boolean(supabaseAnonKey),
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
   }
 }
 
-export function getInitialStorageStatus() {
-  const mode = getInitialStorageMode()
+export function getSupabasePersistenceDiagnostic() {
   return {
-    ...getSupabasePersistenceDebugInfo(),
-    mode,
-    lastSaveTarget: formatStorageMode(mode),
+    ...baseDiagnostic(),
+    lastSaveTarget: lastStorageDiagnostic?.lastSaveTarget ?? null,
     lastSaveErrorMessage: null,
+    lastLoadTarget: lastStorageDiagnostic?.lastLoadTarget ?? null,
+    loadedRowCount: lastStorageDiagnostic?.loadedRowCount ?? 0,
+    ...lastStorageDiagnostic,
+  }
+}
+
+export function getSupabasePersistenceDebugInfo() {
+  return getSupabasePersistenceDiagnostic()
+}
+
+export function getInitialStorageStatus(overrides = {}) {
+  return {
+    ...baseDiagnostic(),
+    mode: getInitialStorageMode(),
+    lastSaveTarget: null,
+    lastSaveErrorMessage: null,
+    lastLoadTarget: null,
+    loadedRowCount: 0,
     action: 'initial',
     rowsAttempted: 0,
     rowsSaved: 0,
+    ...overrides,
   }
 }
 
@@ -75,6 +93,8 @@ function logPersistenceStatus(status) {
     supabaseConfigured: status.supabaseConfigured,
     lastSaveTarget: status.lastSaveTarget,
     lastSaveErrorMessage: status.lastSaveErrorMessage,
+    lastLoadTarget: status.lastLoadTarget,
+    loadedRowCount: status.loadedRowCount,
     action: status.action,
     rowsAttempted: status.rowsAttempted,
     rowsSaved: status.rowsSaved,
@@ -86,18 +106,40 @@ function logPersistenceStatus(status) {
   }
 }
 
-function createStorageResult({ mode, ok = true, error = null, action, rowsAttempted = 0, rowsSaved = 0, history = null, trades = null }) {
+function createStorageResult({
+  mode,
+  ok = true,
+  error = null,
+  action,
+  rowsAttempted = 0,
+  rowsSaved = 0,
+  loadedRowCount = null,
+  history = null,
+  trades = null,
+}) {
+  const errorMessage = safeErrorMessage(error)
+  const isLoad = String(action || '').startsWith('load')
+  const isSave = /save|delete|clear/.test(String(action || ''))
+  const isClear = String(action || '').startsWith('clear')
   const status = {
-    ...getSupabasePersistenceDebugInfo(),
+    ...baseDiagnostic(),
     mode,
     ok,
     error,
-    errorMessage: safeErrorMessage(error),
-    lastSaveTarget: formatStorageMode(mode),
-    lastSaveErrorMessage: safeErrorMessage(error),
+    errorMessage,
+    lastSaveTarget: isSave ? mode : lastStorageDiagnostic?.lastSaveTarget ?? null,
+    lastSaveErrorMessage: isSave ? errorMessage : lastStorageDiagnostic?.lastSaveErrorMessage ?? null,
+    lastLoadTarget: isLoad ? mode : lastStorageDiagnostic?.lastLoadTarget ?? null,
+    loadedRowCount: isLoad || isClear ? loadedRowCount ?? trades?.length ?? rowsSaved : lastStorageDiagnostic?.loadedRowCount ?? 0,
     action,
     rowsAttempted,
     rowsSaved,
+  }
+  lastStorageDiagnostic = {
+    lastSaveTarget: status.lastSaveTarget,
+    lastSaveErrorMessage: status.lastSaveErrorMessage,
+    lastLoadTarget: status.lastLoadTarget,
+    loadedRowCount: status.loadedRowCount,
   }
   logPersistenceStatus(status)
   return {
@@ -135,6 +177,42 @@ export function createJournalTradeId(seed = '') {
 
 function safeArray(value) {
   return Array.isArray(value) ? value : []
+}
+
+function readLocalJournalTrades() {
+  return safeArray(readStorage(STORAGE_KEYS.journal, []))
+}
+
+export function clearLocalJournalStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error: new Error('localStorage is not available.'),
+      action: 'clear local journal',
+    })
+  }
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEYS.journal)
+    window.localStorage.removeItem(STORAGE_KEYS.traderProfile)
+    window.localStorage.removeItem(STORAGE_KEYS.analysisHistory)
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'clear local journal',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      loadedRowCount: 0,
+      trades: [],
+    })
+  } catch (error) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error,
+      action: 'clear local journal',
+    })
+  }
 }
 
 function optionalNumber(value) {
@@ -232,13 +310,13 @@ function fromJournalTradeRow(row) {
 }
 
 export async function loadJournalTradesFromStorage() {
-  const localTrades = safeArray(readStorage(STORAGE_KEYS.journal, []))
   const client = getSupabaseClient()
   if (!client) {
+    const localTrades = readLocalJournalTrades()
     return createStorageResult({
       mode: STORAGE_MODES.local,
       action: 'load journal_trades',
-      rowsSaved: localTrades.length,
+      loadedRowCount: localTrades.length,
       trades: localTrades,
     })
   }
@@ -252,29 +330,29 @@ export async function loadJournalTradesFromStorage() {
     if (error) throw error
 
     const trades = safeArray(data).map(fromJournalTradeRow)
-    writeStorage(STORAGE_KEYS.journal, trades)
     return createStorageResult({
       mode: STORAGE_MODES.supabase,
       action: 'load journal_trades',
-      rowsSaved: trades.length,
+      loadedRowCount: trades.length,
       trades,
     })
   } catch (error) {
+    const localTrades = readLocalJournalTrades()
     return createStorageResult({
       mode: STORAGE_MODES.local,
       error,
       action: 'load journal_trades fallback',
-      rowsSaved: localTrades.length,
+      loadedRowCount: localTrades.length,
       trades: localTrades,
     })
   }
 }
 
-export async function saveJournalTradesToStorage(trades) {
+export async function saveJournalTradesToStorage(trades, options = {}) {
   const safeTrades = safeArray(trades)
-  const localSaved = writeStorage(STORAGE_KEYS.journal, safeTrades)
   const client = getSupabaseClient()
   if (!client) {
+    const localSaved = writeStorage(STORAGE_KEYS.journal, safeTrades)
     return createStorageResult({
       mode: STORAGE_MODES.local,
       ok: localSaved,
@@ -300,6 +378,9 @@ export async function saveJournalTradesToStorage(trades) {
       rowsSaved: rows.length,
     })
   } catch (error) {
+    const localSaved = options.fallbackToLocal === false
+      ? false
+      : writeStorage(STORAGE_KEYS.journal, safeTrades)
     return createStorageResult({
       mode: STORAGE_MODES.local,
       ok: localSaved,
@@ -307,6 +388,42 @@ export async function saveJournalTradesToStorage(trades) {
       action: 'save journal_trades fallback',
       rowsAttempted: safeTrades.length,
       rowsSaved: localSaved ? safeTrades.length : 0,
+    })
+  }
+}
+
+export async function clearSupabaseJournalTrades() {
+  const client = getSupabaseClient()
+  if (!client) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error: new Error('Supabase is not configured.'),
+      action: 'clear journal_trades fallback',
+    })
+  }
+
+  try {
+    const { count, error } = await client
+      .from('journal_trades')
+      .delete({ count: 'exact' })
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (error) throw error
+
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'clear journal_trades',
+      rowsAttempted: count ?? 0,
+      rowsSaved: count ?? 0,
+      loadedRowCount: 0,
+      trades: [],
+    })
+  } catch (error) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error,
+      action: 'clear journal_trades fallback',
     })
   }
 }
