@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { exportTradeDataset } from "../services/api";
+import { STORAGE_KEYS } from "../services/storage";
 
-const STORAGE_KEY = "bullcast_journal_v1";
+const STORAGE_KEY = STORAGE_KEYS.journal;
 
 const ASSET_TYPES = ["stock", "forex", "crypto", "index", "unknown"];
 const SETUP_TAGS = [
@@ -19,6 +20,10 @@ const SETUP_TAGS = [
   "range_trade",
   "other",
 ];
+const GENERATED_SETUP_LABELS = {
+  pattern_alert: "Pattern Alert",
+  streak_pullback_confirmation: "Streak Pullback Confirmation",
+};
 const MISTAKE_TAGS = [
   "none",
   "late_entry",
@@ -77,6 +82,14 @@ function normalizeKey(value) {
     .replace(/[\s-]+/g, "_");
 }
 
+function normalizeSetupTag(value) {
+  const raw = String(value || "").trim();
+  const key = normalizeKey(raw);
+  if (!key) return "";
+  if (SETUP_TAGS.includes(key)) return key;
+  return GENERATED_SETUP_LABELS[key] || raw;
+}
+
 const IMPORT_COLUMN_ALIASES = {
   assettype: "asset_type",
   asset_type: "asset_type",
@@ -90,6 +103,7 @@ const IMPORT_COLUMN_ALIASES = {
   exit_price: "exit_price",
   exit_reason: "exit_reason",
   id: "id",
+  mistake: "mistake_tag",
   mistake_tag: "mistake_tag",
   notes: "notes",
   pl: "pnl",
@@ -103,7 +117,9 @@ const IMPORT_COLUMN_ALIASES = {
   result: "result",
   rule_followed: "rule_followed",
   scenario_context: "scenario_context",
+  setup: "setup_tag",
   setup_tag: "setup_tag",
+  side: "type",
   source_type: "source_type",
   symbol: "symbol",
   synthetic_flag: "synthetic_flag",
@@ -159,7 +175,7 @@ function normalizeTrade(trade, index = null) {
   const pnlPct = parseOptionalNumber(trade?.pnl_pct);
   const computed = calcPnl(type, entry, exit, quantity);
   const assetType = ASSET_TYPES.includes(trade?.asset_type) ? trade.asset_type : inferAssetType(symbol);
-  const setupTag = SETUP_TAGS.includes(trade?.setup_tag) ? trade.setup_tag : "";
+  const setupTag = normalizeSetupTag(trade?.setup_tag ?? trade?.setupTag ?? trade?.setup ?? trade?.setupName ?? trade?.strategy);
   const mistakeTag = MISTAKE_TAGS.includes(trade?.mistake_tag) ? trade.mistake_tag : "none";
   const result = normalizeResult(trade?.result) || computed.result || (pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : null);
 
@@ -355,7 +371,8 @@ function normalizeImportedTrade(row, index) {
     return { trade: null, error: `Row ${index + 2}: missing symbol.` };
   }
 
-  const type = String(data.type || "LONG").trim().toUpperCase() === "SHORT" ? "SHORT" : "LONG";
+  const rawSide = String(data.type || "LONG").trim().toUpperCase();
+  const type = rawSide === "SHORT" || rawSide === "SELL" ? "SHORT" : "LONG";
   const entry = parseOptionalNumber(data.entry_price);
   const exit = parseOptionalNumber(data.exit_price);
   const quantity = parseOptionalNumber(data.quantity);
@@ -366,10 +383,12 @@ function normalizeImportedTrade(row, index) {
   const assetType = String(data.asset_type || "").trim().toLowerCase();
   const setupTag = normalizeKey(data.setup_tag);
   const mistakeTag = normalizeKey(data.mistake_tag);
+  const notes = String(data.notes || "").trim();
+  const simulatedImport = /simulated data|generated from ohlc pattern alert data/i.test(notes);
 
   return {
     trade: normalizeTrade({
-      id: String(data.id || "").trim() || `IMPORT-${dateStamp()}-${index + 1}-${symbol}`,
+      id: String(data.id || "").trim() || `${simulatedImport ? "SYN-PATTERN" : "IMPORT"}-${dateStamp()}-${index + 1}-${symbol}`,
       date: String(data.date || dateStamp()).trim(),
       symbol,
       asset_type: ASSET_TYPES.includes(assetType) ? assetType : inferAssetType(symbol),
@@ -377,11 +396,11 @@ function normalizeImportedTrade(row, index) {
       entry_price: entry,
       exit_price: exit,
       quantity,
-      notes: String(data.notes || "").trim(),
+      notes,
       pnl,
       pnl_pct: parseOptionalNumber(data.pnl_pct) ?? computed.pnl_pct,
       result,
-      setup_tag: SETUP_TAGS.includes(setupTag) ? setupTag : "",
+      setup_tag: normalizeSetupTag(data.setup_tag),
       mistake_tag: MISTAKE_TAGS.includes(mistakeTag) ? mistakeTag : "none",
       confidence_score: parseConfidence(data.confidence_score),
       planned_risk: parseOptionalNumber(data.planned_risk),
@@ -390,8 +409,8 @@ function normalizeImportedTrade(row, index) {
       entry_reason: String(data.entry_reason || "").trim(),
       exit_reason: String(data.exit_reason || "").trim(),
       scenario_context: String(data.scenario_context || "").trim(),
-      synthetic_flag: normalizeBoolean(data.synthetic_flag),
-      source_type: String(data.source_type || "").trim().toLowerCase(),
+      synthetic_flag: simulatedImport ? true : normalizeBoolean(data.synthetic_flag),
+      source_type: simulatedImport ? "synthetic_dev" : String(data.source_type || "").trim().toLowerCase(),
     }),
     error: null,
   };

@@ -3,7 +3,7 @@
  * ALL backend communication goes through here.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/+$/, "")
 const REQUEST_TIMEOUT_MS = 25000
 
 async function _request(path, options = {}) {
@@ -11,7 +11,7 @@ async function _request(path, options = {}) {
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
   try {
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
       headers: { "Content-Type": "application/json" },
       ...options,
       signal: controller.signal
@@ -123,6 +123,12 @@ export const askIntelligence = (trades, question) =>
   _request('/api/intelligence/ask', {
     method: 'POST',
     body: JSON.stringify({ trades, question })
+  })
+
+export const analyzeFutureTrade = (trades, trade) =>
+  _request('/api/intelligence/trade-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ trades, trade })
   })
 
 export const exportTradeDataset = (trades, options = {}) =>

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { runBacktest } from "../services/api"
+import { STORAGE_KEYS, appendStorageItem } from "../services/storage"
 
 /**
  * Backtest runner hook.
@@ -17,6 +18,13 @@ export function useBacktest() {
     try {
       const data = await runBacktest(params)
       setResult(data)
+      appendStorageItem(STORAGE_KEYS.backtestResults, {
+        timestamp: new Date().toISOString(),
+        request: params,
+        metrics: data?.metrics || {},
+        trade_count: Array.isArray(data?.trades) ? data.trades.length : 0,
+        result: data,
+      })
     } catch (e) {
       setError(e.message)
     } finally {

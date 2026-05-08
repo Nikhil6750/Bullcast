@@ -237,6 +237,7 @@ export default function SymbolBacktest({ initialConfig = null }) {
                 { label: "Return", value: formatPercent(returnPct), color: returnPct === null ? "text-[var(--color-text)]" : returnPct >= 0 ? "text-[var(--color-bull)]" : "text-[var(--color-bear)]" },
                 { label: "Max Drawdown", value: formatPercent(safeMetric(results, "max_drawdown")) },
                 { label: "Profit Factor", value: formatNumber(safeMetric(results, "profit_factor"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                { label: "Average R:R", value: formatNumber(safeMetric(results, "average_rr"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                 { label: "Sharpe Ratio", value: formatNumber(safeMetric(results, "sharpe_ratio"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                 { label: "Sortino Ratio", value: formatNumber(safeMetric(results, "sortino_ratio"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                 { label: "Calmar Ratio", value: formatNumber(safeMetric(results, "calmar_ratio"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },

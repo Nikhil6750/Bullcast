@@ -5,16 +5,17 @@ def calculate_metrics(trades: list[dict], equity_curve: list[dict], initial_capi
     if not trades or not equity_curve:
         return {
             "total_trades": 0, "winning_trades": 0, "losing_trades": 0, "win_rate": 0.0,
-            "total_pnl": 0.0, "return_pct": 0.0, "final_capital": initial_capital,
+            "loss_rate": 0.0, "total_pnl": 0.0, "net_pnl": 0.0, "return_pct": 0.0, "final_capital": initial_capital,
             "initial_capital": initial_capital, "avg_win": 0.0, "avg_loss": 0.0,
-            "profit_factor": 0.0, "max_drawdown": 0.0, "sharpe_ratio": 0.0,
+            "profit_factor": 0.0, "average_rr": 0.0, "avg_rr": 0.0, "max_drawdown": 0.0, "sharpe_ratio": 0.0,
             "sortino_ratio": 0.0, "calmar_ratio": 0.0
         }
         
     total_trades = len(trades)
     winning_trades = sum(1 for t in trades if t["pnl"] > 0)
-    losing_trades = sum(1 for t in trades if t["pnl"] <= 0)
+    losing_trades = sum(1 for t in trades if t["pnl"] < 0)
     win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0.0
+    loss_rate = (losing_trades / total_trades) * 100 if total_trades > 0 else 0.0
     
     total_pnl = sum(t["pnl"] for t in trades)
     final_capital = equity_curve[-1]["equity"]
@@ -29,6 +30,7 @@ def calculate_metrics(trades: list[dict], equity_curve: list[dict], initial_capi
     gross_profit = sum(wins)
     gross_loss = abs(sum(losses))
     profit_factor = gross_profit / gross_loss if gross_loss != 0 else float('inf') if gross_profit > 0 else 0.0
+    average_rr = (avg_win / abs(avg_loss)) if avg_win > 0 and avg_loss < 0 else 0.0
     
     # Calculate drawdown
     eq_df = pd.DataFrame(equity_curve)
@@ -75,13 +77,17 @@ def calculate_metrics(trades: list[dict], equity_curve: list[dict], initial_capi
         "winning_trades": int(winning_trades),
         "losing_trades": int(losing_trades),
         "win_rate": _clean(round(win_rate, 2)),
+        "loss_rate": _clean(round(loss_rate, 2)),
         "total_pnl": _clean(round(total_pnl, 2)),
+        "net_pnl": _clean(round(total_pnl, 2)),
         "return_pct": _clean(round(return_pct, 2)),
         "final_capital": _clean(round(final_capital, 2)),
         "initial_capital": _clean(initial_capital),
         "avg_win": _clean(round(avg_win, 2)),
         "avg_loss": _clean(round(avg_loss, 2)),
         "profit_factor": _clean(round(profit_factor, 2)),
+        "average_rr": _clean(round(average_rr, 2)),
+        "avg_rr": _clean(round(average_rr, 2)),
         "max_drawdown": _clean(round(max_drawdown, 2)),
         "sharpe_ratio": _clean(round(sharpe_ratio, 2)),
         "sortino_ratio": _clean(round(sortino_ratio, 2)),

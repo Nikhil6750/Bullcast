@@ -1,0 +1,195 @@
+{
+  "delta": {
+    "average_hold_duration": -0.2109,
+    "average_rr": 0.0321,
+    "input_files": 2.0,
+    "invalid_setups": 19327.0,
+    "loss_rate": -1.02,
+    "malformed_candles": 32.0,
+    "setups_detected": 20106.0,
+    "total_candles": 362254.0,
+    "trades_generated": 779.0,
+    "valid_candles": 362222.0,
+    "valid_setups": 779.0,
+    "win_rate": 1.02
+  },
+  "disclaimer": "Generated rows are simulated from OHLC structure and are not real trading history.",
+  "generated_at": "2026-05-08T15:49:26.754412+00:00",
+  "latest": {
+    "average_hold_duration": 4.5617,
+    "average_rr": -0.0923,
+    "input_files": 24,
+    "invalid_setups": 63625,
+    "label": "latest",
+    "loss_rate": 69.45,
+    "malformed_candles": 80,
+    "mistake_distribution": {
+      "FOMO entry": 78,
+      "chasing momentum": 31,
+      "early exit": 5,
+      "emotional re-entry": 17,
+      "no patience": 120,
+      "none": 1840,
+      "overconfidence": 98,
+      "revenge trade": 254,
+      "weak confirmation": 117
+    },
+    "setups_detected": 66185,
+    "top_symbols": [
+      {
+        "setups_found": 3556,
+        "symbol": "BTCUSDT",
+        "trades_generated": 190,
+        "valid_candles": 59366
+      },
+      {
+        "setups_found": 3695,
+        "symbol": "ETHUSDT",
+        "trades_generated": 171,
+        "valid_candles": 63827
+      },
+      {
+        "setups_found": 2811,
+        "symbol": "EURUSD",
+        "trades_generated": 126,
+        "valid_candles": 50848
+      },
+      {
+        "setups_found": 2962,
+        "symbol": "USDJPY",
+        "trades_generated": 125,
+        "valid_candles": 50712
+      },
+      {
+        "setups_found": 2914,
+        "symbol": "GBPUSD",
+        "trades_generated": 119,
+        "valid_candles": 50777
+      },
+      {
+        "setups_found": 2739,
+        "symbol": "AUDUSD",
+        "trades_generated": 119,
+        "valid_candles": 50820
+      },
+      {
+        "setups_found": 2879,
+        "symbol": "CADJPY",
+        "trades_generated": 118,
+        "valid_candles": 50498
+      },
+      {
+        "setups_found": 2766,
+        "symbol": "USDCHF",
+        "trades_generated": 118,
+        "valid_candles": 50572
+      },
+      {
+        "setups_found": 2866,
+        "symbol": "CHFJPY",
+        "trades_generated": 111,
+        "valid_candles": 50338
+      },
+      {
+        "setups_found": 2855,
+        "symbol": "GBPAUD",
+        "trades_generated": 111,
+        "valid_candles": 50457
+      }
+    ],
+    "total_candles": 1191705,
+    "trades_generated": 2560,
+    "valid_candles": 1191625,
+    "valid_setups": 2560,
+    "win_rate": 30.55
+  },
+  "old": {
+    "average_hold_duration": 4.7726,
+    "average_rr": -0.1244,
+    "input_files": 22,
+    "invalid_setups": 44298,
+    "label": "old",
+    "loss_rate": 70.47,
+    "malformed_candles": 48,
+    "mistake_distribution": {
+      "FOMO entry": 47,
+      "chasing momentum": 22,
+      "early exit": 5,
+      "emotional re-entry": 12,
+      "no patience": 89,
+      "none": 1295,
+      "overconfidence": 63,
+      "revenge trade": 168,
+      "weak confirmation": 80
+    },
+    "setups_detected": 46079,
+    "top_symbols": [
+      {
+        "setups_found": 2582,
+        "symbol": "BTCUSDT",
+        "trades_generated": 135,
+        "valid_candles": 42085
+      },
+      {
+        "setups_found": 2717,
+        "symbol": "ETHUSDT",
+        "trades_generated": 125,
+        "valid_candles": 46546
+      },
+      {
+        "setups_found": 2150,
+        "symbol": "EURUSD",
+        "trades_generated": 99,
+        "valid_candles": 38606
+      },
+      {
+        "setups_found": 2179,
+        "symbol": "CADJPY",
+        "trades_generated": 91,
+        "valid_candles": 38335
+      },
+      {
+        "setups_found": 2098,
+        "symbol": "USDCHF",
+        "trades_generated": 90,
+        "valid_candles": 38372
+      },
+      {
+        "setups_found": 2224,
+        "symbol": "GBPUSD",
+        "trades_generated": 89,
+        "valid_candles": 38547
+      },
+      {
+        "setups_found": 2149,
+        "symbol": "EURJPY",
+        "trades_generated": 87,
+        "valid_candles": 38561
+      },
+      {
+        "setups_found": 2156,
+        "symbol": "GBPAUD",
+        "trades_generated": 84,
+        "valid_candles": 38253
+      },
+      {
+        "setups_found": 2095,
+        "symbol": "AUDJPY",
+        "trades_generated": 84,
+        "valid_candles": 38319
+      },
+      {
+        "setups_found": 1982,
+        "symbol": "AUDCHF",
+        "trades_generated": 84,
+        "valid_candles": 38394
+      }
+    ],
+    "total_candles": 829451,
+    "trades_generated": 1781,
+    "valid_candles": 829403,
+    "valid_setups": 1781,
+    "win_rate": 29.53
+  },
+  "strategy": "Streak Pullback Confirmation"
+}

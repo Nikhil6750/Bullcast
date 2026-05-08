@@ -43,6 +43,10 @@ export default function PerformanceMetrics({ metrics }) {
       label: "Profit Factor",
       value: metrics?.profitFactor == null ? "-" : formatMetric(metrics?.profitFactor),
     },
+    {
+      label: "Average R:R",
+      value: metrics?.averageRR == null ? "-" : formatMetric(metrics?.averageRR),
+    },
   ];
 
   return (

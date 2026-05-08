@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules
+.vscode
+backend/models/
+journal_trades.json
+dev_data/

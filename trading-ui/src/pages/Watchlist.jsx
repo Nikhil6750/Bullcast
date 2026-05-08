@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import WatchlistCard from "../components/WatchlistCard";
+import { getWatchlist } from "../services/api";
 
 export default function Watchlist() {
   const [data, setData] = useState([]);
@@ -12,8 +12,8 @@ export default function Watchlist() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get("http://localhost:8000/api/watchlist");
-      setData(response.data);
+      const watchlist = await getWatchlist();
+      setData(watchlist);
       const now = new Date();
       setLastRefreshed(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err) {

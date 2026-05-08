@@ -8,7 +8,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Final, List, Optional
+from typing import Final, List
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +24,7 @@ from backend.datasets import build_trade_dataset
 from backend.edgar import build_edgar_context_for_ticker
 from backend.gap_handling import generate_trades_and_setups_with_gap_resets
 from backend.intelligence.coach import TradeCoach
+from backend.journal import JournalTrade
 from backend.strategy_lab import StrategyLabError, run_strategy_lab
 
 _INVALID_FILENAME_MSG: Final[str] = "Invalid CSV filename format"
@@ -130,27 +131,7 @@ class BacktestRequest(BaseModel):
     slippage: float = 0.0005
     sentiment_score: int | None = None
 
-class TradeEntry(BaseModel):
-    id: str
-    date: str
-    symbol: str
-    asset_type: Optional[str] = None
-    type: str
-    entry_price: float
-    exit_price: float
-    quantity: int
-    pnl: float
-    pnl_pct: Optional[float] = 0
-    result: str
-    notes: Optional[str] = ""
-    setup_tag: Optional[str] = None
-    mistake_tag: Optional[str] = None
-    confidence_score: Optional[int] = None
-    planned_risk: Optional[float] = None
-    planned_reward: Optional[float] = None
-    rule_followed: Optional[bool] = None
-    entry_reason: Optional[str] = None
-    exit_reason: Optional[str] = None
+TradeEntry = JournalTrade
 
 class AnalyzeRequest(BaseModel):
     trades: List[TradeEntry]
@@ -158,6 +139,10 @@ class AnalyzeRequest(BaseModel):
 class AskRequest(BaseModel):
     trades: List[TradeEntry]
     question: str
+
+class TradeAnalysisRequest(BaseModel):
+    trades: List[TradeEntry] = Field(default_factory=list)
+    trade: TradeEntry
 
 class TradeDatasetExportRequest(BaseModel):
     trades: List[dict] = Field(default_factory=list)
@@ -248,6 +233,25 @@ async def intelligence_ask(req: AskRequest):
         raise HTTPException(
             status_code=500,
             detail="Could not answer question. Please try again."
+        )
+
+
+@app.post("/api/intelligence/trade-analysis")
+async def intelligence_trade_analysis(req: TradeAnalysisRequest):
+    """
+    Score a possible future trade against journal behavior history.
+    Returns decision-support context only, never buy/sell instructions.
+    """
+    try:
+        trades_dicts = [t.model_dump() for t in req.trades]
+        candidate = req.trade.model_dump()
+        coach = TradeCoach(trades_dicts)
+        return coach.analyze_trade_setup(candidate)
+    except Exception as e:
+        logger.error(f"Trade setup analysis error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Trade analysis failed. Please try again."
         )
 
 

@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import InsightCard from '../components/InsightCard'
 import PatternHeatmap from '../components/PatternHeatmap'
 import { analyzeJournal, askIntelligence, exportTradeDataset, getEdgarContext, getTrainingReport } from '../services/api'
+import { STORAGE_KEYS, appendStorageItem, readStorage, writeStorage } from '../services/storage'
 
-const STORAGE_KEY = 'bullcast_journal_v1'
+const STORAGE_KEY = STORAGE_KEYS.journal
 
 const EXAMPLE_QUESTIONS = [
   'Why do I keep losing trades?',
@@ -15,6 +16,10 @@ const EXAMPLE_QUESTIONS = [
 ]
 
 const EQUITY_LIKE_TICKERS = new Set(['RELIANCE', 'TATASTEEL', 'INFY', 'TCS'])
+const SETUP_LABELS = {
+  pattern_alert: 'Pattern Alert',
+  streak_pullback_confirmation: 'Streak Pullback Confirmation',
+}
 
 function inferAssetType(symbol) {
   const s = String(symbol || '').trim().toUpperCase()
@@ -39,6 +44,21 @@ function optionalBoolean(value) {
   return null
 }
 
+function normalizeSetupKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[%&/()]/g, '')
+    .replace(/[\s-]+/g, '_')
+}
+
+function normalizeSetupTag(value) {
+  const raw = String(value || '').trim()
+  const key = normalizeSetupKey(raw)
+  if (!key) return ''
+  return SETUP_LABELS[key] || raw
+}
+
 function normalizeTrade(trade) {
   const entry = Number(trade.entry_price ?? trade.entryPrice ?? trade.entry ?? 0)
   const exit = Number(trade.exit_price ?? trade.exitPrice ?? trade.exit ?? 0)
@@ -61,7 +81,7 @@ function normalizeTrade(trade) {
     pnl_pct: Number(trade.pnl_pct ?? trade.pnlPct ?? trade.return_pct ?? 0),
     result: result === 'LOSS' ? 'LOSS' : 'WIN',
     notes: String(trade.notes ?? trade.note ?? ''),
-    setup_tag: String(trade.setup_tag ?? trade.setupTag ?? ''),
+    setup_tag: normalizeSetupTag(trade.setup_tag ?? trade.setupTag ?? trade.setup ?? trade.setupName ?? trade.strategy),
     mistake_tag: String(trade.mistake_tag ?? trade.mistakeTag ?? 'none'),
     confidence_score: optionalNumber(trade.confidence_score ?? trade.confidenceScore),
     planned_risk: optionalNumber(trade.planned_risk ?? trade.plannedRisk),
@@ -2045,7 +2065,7 @@ function EdgarTd({ children }) {
 export default function Intelligence() {
   const [trades, setTrades] = useState(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      const raw = readStorage(STORAGE_KEY, [])
       return Array.isArray(raw) ? raw.map(normalizeTrade) : []
     } catch {
       return []
@@ -2077,6 +2097,16 @@ export default function Intelligence() {
     try {
       const result = await analyzeJournal(trades)
       setAnalysis(result)
+      if (result?.trader_profile) {
+        writeStorage(STORAGE_KEYS.traderProfile, result.trader_profile)
+      }
+      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+        type: 'journal_analysis',
+        timestamp: new Date().toISOString(),
+        trade_count: trades.length,
+        basic_stats: result?.basic_stats || {},
+        trader_profile: result?.trader_profile || null,
+      })
     } catch (e) {
       setError(
         e.message?.includes('fetch')
@@ -2109,6 +2139,18 @@ export default function Intelligence() {
         method: result.method,
       }
       setChatHistory((h) => [...h, assistantMsg])
+      if (result?.trader_profile) {
+        writeStorage(STORAGE_KEYS.traderProfile, result.trader_profile)
+      }
+      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+        type: 'journal_question',
+        timestamp: new Date().toISOString(),
+        trade_count: trades.length,
+        question: questionToAsk,
+        method: result?.method,
+        sources: result?.sources || [],
+        trader_profile: result?.trader_profile || null,
+      })
     } catch {
       setAskError('Could not get answer. Try again.')
       setChatHistory((h) => h.slice(0, -1))

@@ -7,6 +7,9 @@ export default function App() {
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none"></div>
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />
+        <div className="border-b border-border bg-background/70 px-4 py-2 text-center font-mono text-[11px] uppercase tracking-wider text-neutral-400">
+          Prototype only. Not financial advice.
+        </div>
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

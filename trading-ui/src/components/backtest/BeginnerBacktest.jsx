@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { runBacktest } from "../../services/api";
+import { STORAGE_KEYS, appendStorageItem } from "../../services/storage";
 import BenchmarkComparison from "./BenchmarkComparison";
 import {
   formatCurrency,
@@ -276,6 +277,7 @@ function BeginnerResults({ result, initialCapital, onSwitchExpert, symbol, strat
   const winRate = safeMetric(result, "win_rate");
   const maxDrawdown = safeMetric(result, "max_drawdown");
   const profitFactor = safeMetric(result, "profit_factor");
+  const averageRR = safeMetric(result, "average_rr");
   const equity = Array.isArray(result?.equity_curve) ? result.equity_curve : [];
 
   return (
@@ -340,6 +342,12 @@ function BeginnerResults({ result, initialCapital, onSwitchExpert, symbol, strat
           value={formatNumber(profitFactor, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           tone={getMetricTone("profit_factor", profitFactor)}
           explanation="Gross wins divided by gross losses. Above 1 means wins exceeded losses."
+        />
+        <MetricExplainerCard
+          label="Average R:R"
+          value={formatNumber(averageRR, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          tone="neutral"
+          explanation="Average win size divided by average loss size for completed trades."
         />
       </div>
 
@@ -518,6 +526,14 @@ export default function BeginnerBacktest({ onSwitchExpert }) {
       }
       const data = await runBacktest(payload);
       setResult(data);
+      appendStorageItem(STORAGE_KEYS.backtestResults, {
+        timestamp: new Date().toISOString(),
+        mode: "beginner",
+        request: payload,
+        metrics: data?.metrics || {},
+        trade_count: Array.isArray(data?.trades) ? data.trades.length : 0,
+        result: data,
+      });
     } catch (err) {
       setError(String(err?.message || err || "Backtest failed."));
     } finally {

@@ -87,12 +87,15 @@ class TradeVectorStore:
         date = trade.get("date", "unknown date")
         symbol = trade.get("symbol", "unknown")
         trade_type = trade.get("type", "LONG")
-        entry = trade.get("entry_price", 0)
-        exit_p = trade.get("exit_price", 0)
-        pnl = trade.get("pnl", 0)
+        entry = _safe_number(trade.get("entry_price", 0))
+        exit_p = _safe_number(trade.get("exit_price", 0))
+        pnl = _safe_number(trade.get("pnl", 0))
         result = trade.get("result", "LOSS")
         qty = trade.get("quantity", 1)
         notes = trade.get("notes", "")
+        setup = trade.get("setup_tag") or trade.get("setup") or "none"
+        mistake = trade.get("mistake_tag") or trade.get("mistake") or "none"
+        confidence = trade.get("confidence_score") or trade.get("confidence") or "unknown"
 
         sent = self.sentiment_context.get(date, {})
         sentiment_text = ""
@@ -130,6 +133,9 @@ class TradeVectorStore:
             f"₹{entry:,.2f}, exited at ₹{exit_p:,.2f}. "
             f"Quantity: {qty} shares. "
             f"P&L: {pnl_sign}₹{pnl:,.2f}. "
+            f"Setup: {setup}. "
+            f"Mistake tag: {mistake}. "
+            f"Confidence: {confidence}. "
             f"{sentiment_text}"
             f"Trader notes: {notes if notes else 'none'}."
         )
@@ -199,6 +205,8 @@ class TradeVectorStore:
                 str(trade.get("symbol", "")),
                 str(trade.get("result", "")),
                 str(trade.get("type", "")),
+                str(trade.get("setup_tag", "")),
+                str(trade.get("mistake_tag", "")),
                 str(trade.get("notes", "")),
                 document,
             ]).lower()
@@ -221,3 +229,15 @@ class TradeVectorStore:
             "document": self.documents[idx],
             "relevance": relevance,
         } for relevance, idx in scored[:top_k]]
+
+
+def _safe_number(value) -> float:
+    try:
+        if value in ("", None):
+            return 0.0
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if number != number or number in {float("inf"), float("-inf")}:
+        return 0.0
+    return number

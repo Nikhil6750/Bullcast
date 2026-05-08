@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from backend.journal import normalize_journal_trade
+
 
 class TradeAnalyzer:
 
@@ -13,15 +15,23 @@ class TradeAnalyzer:
         self.context = context or {}
         self.trade_contexts = self.context.get("trades", [])
 
-        if not trades:
+        normalized_trades = [
+            normalize_journal_trade(trade, index)
+            for index, trade in enumerate(trades or [])
+        ]
+
+        if not normalized_trades:
             self.df = pd.DataFrame()
             self.empty = True
             return
 
-        self.df = pd.DataFrame(trades)
-        self.df['date'] = pd.to_datetime(self.df['date'])
+        self.df = pd.DataFrame(normalized_trades)
+        self.df['date'] = pd.to_datetime(self.df['date'], errors='coerce')
         self.df['day_of_week'] = self.df['date'].dt.day_name()
         self.df['month'] = self.df['date'].dt.month_name()
+        self.df['pnl'] = pd.to_numeric(self.df.get('pnl', 0), errors='coerce').fillna(0)
+        self.df['result'] = self.df.get('result', '').fillna('').astype(str).str.upper()
+        self.df['type'] = self.df.get('type', 'LONG').fillna('LONG').astype(str).str.upper()
         self.df['is_win'] = self.df['result'] == 'WIN'
         self.empty = len(self.df) == 0
 
@@ -191,7 +201,7 @@ class TradeAnalyzer:
         return {
             "values": [round(p, 2) for p in pnls],
             "dates": self.df['date'].dt.strftime(
-                '%Y-%m-%d').tolist(),
+                '%Y-%m-%d').fillna('').tolist(),
             "symbols": self.df['symbol'].tolist(),
             "results": self.df['result'].tolist()
         }

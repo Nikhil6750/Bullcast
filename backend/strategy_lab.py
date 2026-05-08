@@ -474,6 +474,12 @@ def _compute_metrics(*, trades: list[dict[str, Any]], signal_count: int) -> dict
     profit_factor = None
     if loss_sum > 0:
         profit_factor = float(wins.sum() / loss_sum)
+    average_rr = None
+    if wins.size and losses.size:
+        avg_win = float(wins.mean())
+        avg_loss = abs(float(losses.mean()))
+        if avg_loss > 0:
+            average_rr = float(avg_win / avg_loss)
 
     return {
         "totalTrades": int(len(trades)),
@@ -483,6 +489,7 @@ def _compute_metrics(*, trades: list[dict[str, Any]], signal_count: int) -> dict
         "avgReturn": float(returns.mean()),
         "maxDrawdown": float(drawdowns.min()),
         "profitFactor": profit_factor,
+        "averageRR": average_rr,
         "longTrades": int(sum(1 for trade in trades if trade["direction"] == "BUY")),
         "shortTrades": int(sum(1 for trade in trades if trade["direction"] == "SELL")),
     }
@@ -497,6 +504,7 @@ def _empty_metrics() -> dict[str, Any]:
         "avgReturn": 0.0,
         "maxDrawdown": 0.0,
         "profitFactor": None,
+        "averageRR": None,
         "longTrades": 0,
         "shortTrades": 0,
     }

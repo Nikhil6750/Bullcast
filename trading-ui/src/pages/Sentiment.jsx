@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import axios from "axios";
 import ScoreGauge from "../components/ScoreGauge";
 import HeadlineRow from "../components/HeadlineRow";
 import ShareButton from "../components/ShareButton";
 import SearchBar from "../components/SearchBar";
 import StockLogo from "../components/StockLogo";
+import { getSentiment } from "../services/api";
 
 export default function Sentiment() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,9 +23,9 @@ export default function Sentiment() {
     setData(null);
     
     try {
-      const response = await axios.post("http://localhost:8000/api/sentiment", { stock: stockSymbol });
-      if (response.data && response.data.headlines && response.data.headlines.length > 0) {
-        setData(response.data);
+      const sentiment = await getSentiment(stockSymbol);
+      if (sentiment && sentiment.headlines && sentiment.headlines.length > 0) {
+        setData(sentiment);
       } else {
         setError(`No news found for ${stockSymbol}. Try NSE format e.g. RELIANCE`);
       }

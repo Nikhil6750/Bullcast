@@ -6,6 +6,7 @@ import SetupsVirtualList from "../components/SetupsVirtualList";
 import SymbolBacktest from "../components/SymbolBacktest";
 import BeginnerBacktest from "../components/backtest/BeginnerBacktest";
 import { BASE_URL } from "../lib/api";
+import { STORAGE_KEYS, appendStorageItem } from "../services/storage";
 
 const STRATEGY_OPTIONS = [
   { value: "moving_average", label: "Moving Average Strategy" },
@@ -315,6 +316,18 @@ function StrategyBuilder() {
       });
 
       const normalized = normalizeRunData(response?.data || {});
+      appendStorageItem(STORAGE_KEYS.backtestResults, {
+        timestamp: new Date().toISOString(),
+        mode: "legacy_csv",
+        request: {
+          file: csvFile.name,
+          strategy_type: strategyType,
+          parameters: strategyParameters[strategyType] || {},
+        },
+        metrics: normalized.metrics,
+        trade_count: normalized.trades.length,
+        result: normalized,
+      });
       startTransition(() => {
         setRunData(normalized);
         setSelectedSetupId(null);

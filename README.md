@@ -1,161 +1,162 @@
 # Bullcast
 
-Bullcast is a full-stack market research and trading-journal intelligence prototype. It combines a React trading dashboard, journal import/export workflows, symbol backtesting, ML dataset readiness checks, training-report visibility, and RAG-style market context panels.
+Bullcast is a full-stack market research, backtesting, and trading-journal intelligence prototype. It combines a React trading dashboard with a FastAPI backend for market data, historical strategy simulation, journal dataset export, ML-readiness checks, training-report review, and journal-grounded AI analysis.
 
-The project is designed to demonstrate practical product engineering around trading data workflows. It does not provide financial advice, live trading automation, buy/sell signals, or production model inference.
+Bullcast is educational decision-support software. It does not provide financial advice, live trading automation, brokerage integration, order execution, production model inference, or buy/sell signals.
 
-## Core Features
+## What Bullcast Does
 
-- **Trading journal** with add/edit trade workflows and local persistence.
-- **CSV/XLSX journal import** for onboarding historical journal data.
-- **Real-only JSON export** that excludes synthetic/dev rows before external review.
-- **ML dataset export bridge** that sends real-only journal trades through the backend dataset exporter.
-- **Backtest module** with Beginner and Expert modes.
-- **Intelligence page** with dataset readiness, training report review, data origin safety, real-data collection guidance, and market context panels.
-- **Synthetic-data safety labeling** so dev pipeline validation is not confused with real model performance.
-- **Backend API** for health checks, market data, backtesting, dataset export, ML report retrieval, and intelligence context.
+- Stores a local trading journal with add/edit workflows and CSV/XLSX import.
+- Exports journal data, including a real-only export path that excludes synthetic/dev rows.
+- Converts real journal rows into model-ready dataset JSON through the backend exporter.
+- Builds a trader behavior profile from real journal history.
+- Uses journal history to support AI/RAG-style questions about performance patterns.
+- Runs historical symbol backtests in Beginner and Expert modes.
+- Shows dataset readiness, training-report metadata, data-origin safety, and market-context panels.
+- Labels synthetic/dev data so pipeline validation is not confused with real performance.
 
-## ML Readiness Pipeline
+## System Architecture
 
-Bullcast separates journal collection, dataset readiness, and model training review.
+```text
+trading-ui/ React + Vite
+  Journal.jsx
+    localStorage journal persistence
+    CSV/XLSX import
+    real-only export and dataset export
 
-1. Journal trades are collected in the UI using the `bullcast_journal_v1` localStorage key.
-2. Synthetic/dev rows are detected using:
+  Intelligence.jsx
+    local journal read
+    /api/intelligence/analyze
+    /api/intelligence/ask
+    dataset readiness and report panels
+
+  StrategyBuilder / SymbolBacktest
+    /api/backtest
+    /run-strategy legacy CSV strategy lab
+    localStorage backtest result history
+
+backend/ FastAPI
+  server.py
+    API routes and request models
+
+  journal/models.py
+    canonical JournalTrade model and normalization
+
+  intelligence/
+    analyzer.py        journal stats and pattern analysis
+    training.py        human trade training engine and behavior profile
+    coach.py           RAG, fallback answers, future-trade behavior assessment
+    prompts.py         grounded prompt/fallback response construction
+
+  backtesting/
+    engine.py          symbol backtest execution
+    metrics.py         consistent metric contract
+
+  datasets/trade_dataset.py
+    model-ready dataset export and quality gates
+```
+
+## Persistence
+
+Bullcast uses browser `localStorage` for prototype persistence:
+
+- `bullcast_journal_v1`: journal entries.
+- `bullcast_trader_profile_v1`: latest trader behavior profile.
+- `bullcast_analysis_history_v1`: journal analysis and question history summaries.
+- `bullcast_backtest_results_v1`: recent symbol and CSV strategy backtest results.
+
+There is no production database or account system yet.
+
+## Journal Training Flow
+
+1. Journal rows are collected in the UI and persisted locally.
+2. The backend validates and normalizes rows through `JournalTrade`.
+3. Synthetic/dev rows are excluded from human behavior profiling when any of these are true:
    - `synthetic_flag === true`
    - `source_type === "synthetic_dev"`
-   - IDs starting with `SYN-`
-3. Real-only journal rows can be exported directly as JSON.
-4. Real-only journal rows can also be sent to `POST /api/datasets/trade-export` with:
+   - `id` starts with `SYN-`
+4. `HumanTradeTrainingEngine` reads real journal trades and calculates:
+   - total trades, wins, losses
+   - win rate and loss rate
+   - net PnL and profit factor
+   - average R:R from planned risk/reward when available, otherwise realized win/loss size
+   - average confidence
+   - rule-following rate
+   - repeated mistakes
+   - best-performing symbols and setups
+5. The engine returns a behavior profile with:
+   - risk score
+   - confidence score
+   - behavioral warning
+   - explanation grounded in journal history
 
-   ```json
-   {
-     "trades": [],
-     "include_edgar": false
-   }
-   ```
+This is not model training. It is deterministic journal analysis for coaching context.
 
-5. The backend dataset exporter returns quality-gate metadata such as readiness level, training readiness, and score.
-6. The Training Report Viewer displays existing baseline training reports and clearly labels whether the report contains synthetic/dev data.
+## AI Analysis Flow
 
-The UI does not train models. Training remains an explicit backend workflow and should only be run with appropriate real or paper-trading journal data.
+The main endpoints are:
 
-## RAG / Market Intelligence
+- `POST /api/intelligence/analyze`
+  - Input: `{ "trades": [...] }`
+  - Output: performance stats, patterns, context summary, and `trader_profile`.
 
-Bullcast includes market intelligence panels intended for context and research, not prediction.
+- `POST /api/intelligence/ask`
+  - Input: `{ "trades": [...], "question": "..." }`
+  - Output: a grounded answer, sources, method, and latest `trader_profile`.
+  - Uses Anthropic only when an API key is already configured; otherwise uses the local template/RAG fallback.
 
-- Journal-aware insight sections summarize local trading patterns when data is available.
-- RAG-style context panels explain how journal notes, trade history, market data, and optional EDGAR context can support review workflows.
-- Empty states are shown when journal data or training reports are unavailable, so the UI does not present blank or misleading panels.
-- Intelligence features are informational only and do not generate buy/sell recommendations.
+- `POST /api/intelligence/trade-analysis`
+  - Input: `{ "trades": [...], "trade": {...} }`
+  - Output: future-trade behavior assessment with `risk_score`, `confidence_score`, `behavioral_warning`, and journal-history explanation.
+  - This is decision-support context only and never a buy/sell signal.
 
-## Journal Import / Export
+RAG and market-context panels are informational. Answers must stay grounded in the supplied journal data and avoid predictions.
 
-The Journal page supports:
+## Backtesting Flow
 
-- Importing `.csv` and `.xlsx` files.
-- Parsing the first sheet from XLSX workbooks.
-- Normalizing journal fields such as symbol, asset type, trade direction, result, numeric values, booleans, and ML-ready metadata.
-- Calculating missing `pnl`, `pnl_pct`, and `result` when enough entry/exit data exists.
-- Merging imported rows into existing localStorage trades by ID.
-- Exporting all journal data where existing export controls are available.
-- Exporting real-only journal trades for model-readiness review.
+Bullcast has two backtesting paths:
 
-Supported ML-related fields include:
+- Symbol backtesting through `POST /api/backtest`
+  - Fetches historical OHLCV data.
+  - Applies a selected strategy.
+  - Returns trades, signals, chart data, equity curve, and metrics.
 
-- `setup_tag`
-- `mistake_tag`
-- `confidence_score`
-- `planned_risk`
-- `planned_reward`
-- `rule_followed`
-- `entry_reason`
-- `exit_reason`
-- `scenario_context`
-- `synthetic_flag`
-- `source_type`
+- Legacy CSV strategy lab through `POST /run-strategy`
+  - Accepts uploaded candle CSV files.
+  - Evaluates backend strategy logic.
+  - Returns candles, signals, setups, trades, and metrics.
 
-## Real-Only Dataset Export
+Backtesting metrics now expose a consistent core set:
 
-The real-only export workflow prevents synthetic/dev rows from being mixed into real training datasets.
+- total trades
+- win rate
+- net PnL / total PnL
+- max drawdown
+- profit factor
+- average R:R
 
-Rows are excluded from real-only exports when:
+Backtests are historical simulations. They do not imply future performance and do not place trades.
 
-- `synthetic_flag` is true
-- `source_type` equals `synthetic_dev`
-- `id` starts with `SYN-`
+## Dataset Export And ML Readiness
 
-The Journal page includes:
+Real-only dataset export excludes synthetic/dev rows before sending data to:
 
-- **Export Real Trades JSON** for downloading real-only journal trades.
-- **Export ML Dataset JSON** for sending real-only trades through the backend dataset exporter and downloading the resulting dataset JSON.
+```http
+POST /api/datasets/trade-export
+```
 
-If no real trades are available, the UI shows a visible message and does not download a file or call the backend exporter.
-
-## Backtest Module
-
-Bullcast includes a symbol backtesting workflow with two display modes:
-
-- **Beginner mode** presents a simplified interface with clearer labels and reduced technical detail.
-- **Expert mode** exposes the full backtest controls, including asset type, symbol search, strategy, period, interval, initial capital, commission, slippage, sentiment controls where applicable, metrics, equity curve, and execution log.
-
-Backtesting is a historical simulation tool. It does not imply production readiness and does not place trades.
-
-## Synthetic-Data Safety
-
-Synthetic/dev data is useful for validating the pipeline, but it must not be treated as real model performance.
-
-Training reports can include:
+Payload:
 
 ```json
 {
-  "data_origin": {
-    "synthetic_rows": 0,
-    "real_rows": 0,
-    "synthetic_ratio": 0,
-    "contains_synthetic_data": false,
-    "dev_only": false
-  }
+  "trades": [],
+  "include_edgar": false
 }
 ```
 
-When synthetic/dev data is present, the UI keeps warnings visible:
+The backend returns model-ready rows, summary metadata, and quality-gate checks. The UI does not train models. Baseline training reports are review artifacts only and must be interpreted with data-origin metadata.
 
-- Synthetic/dev metrics are for pipeline validation only.
-- Dev-only reports are labeled clearly.
-- Reports with zero real rows show a real-data-required guard.
-- Missing data-origin metadata is treated as experimental.
-
-## Tech Stack
-
-**Frontend**
-
-- React
-- Vite
-- Tailwind CSS
-- Recharts
-- lightweight-charts
-- xlsx
-- Browser localStorage for prototype journal persistence
-
-**Backend**
-
-- FastAPI
-- Pydantic
-- pandas
-- NumPy
-- yfinance
-- scikit-learn
-- joblib
-
-**Data / Workflows**
-
-- JSON journal data
-- CSV/XLSX imports
-- Real-only dataset export
-- Baseline ML training reports
-- QA checklist in `docs/QA_CHECKLIST.md`
-
-## Setup
+## Run Locally
 
 ### Backend
 
@@ -177,16 +178,11 @@ curl http://127.0.0.1:8000/health
 ```powershell
 cd trading-ui
 npm install
+$env:VITE_API_URL="http://127.0.0.1:8000"
 npm run dev
 ```
 
-If needed, point the UI at the backend:
-
-```powershell
-$env:VITE_API_URL="http://127.0.0.1:8000"
-```
-
-Build before committing frontend work:
+Production build check:
 
 ```powershell
 cd trading-ui
@@ -197,7 +193,7 @@ npm run build
 
 Use [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md) before committing UI or API changes.
 
-Key checks include:
+Key checks:
 
 - `/journal` loads.
 - Journal import/export controls are visible.
@@ -208,12 +204,18 @@ Key checks include:
 - `/intelligence` loads with readable panels.
 - Training Report Viewer handles the no-report state.
 - Data Origin warnings appear for synthetic/dev data.
-- Backend `/health`, `/api/ml/training-report`, `/api/datasets/trade-export`, and `/api/backtest` return JSON or visible errors.
+- Backend `/health`, `/api/ml/training-report`, `/api/datasets/trade-export`, `/api/intelligence/analyze`, `/api/intelligence/ask`, `/api/intelligence/trade-analysis`, and `/api/backtest` return JSON or visible errors.
 
 If `backend/server.py` changes, run:
 
 ```powershell
 python -m py_compile backend/server.py
+```
+
+Recommended backend checks:
+
+```powershell
+pytest
 ```
 
 ## Repository Guardrails
@@ -227,15 +229,17 @@ Do not commit:
 
 Do not run model training during UI-only fixes. Do not commit generated artifacts.
 
-## Current Limitations
+## Limitations And Disclaimer
 
 - Prototype persistence is browser-local unless data is exported.
-- No production authentication, user accounts, or database-backed journal storage.
-- No live trading, brokerage integration, order execution, or buy/sell inference.
-- Backtest results depend on available historical market data and strategy assumptions.
+- There is no production authentication, user account, or database-backed journal storage.
+- There is no live trading, brokerage integration, order execution, or buy/sell inference.
+- Backtest results depend on historical data availability, fees, slippage assumptions, and strategy assumptions.
+- Trader behavior profiles are deterministic journal summaries, not predictive models.
 - ML reports are review artifacts and must be interpreted with data-origin and quality-gate context.
 - Synthetic/dev datasets are only valid for pipeline validation.
-- RAG and market intelligence panels are informational and depend on available local journal data and backend context.
+- RAG and market intelligence panels are informational and depend on available journal and backend context.
+- Nothing in Bullcast is financial advice.
 
 ## Future Roadmap
 
@@ -244,7 +248,7 @@ Do not run model training during UI-only fixes. Do not commit generated artifact
 - Real-data collection progress tracking across asset classes.
 - Expanded dataset quality gates and model governance reporting.
 - Historical report archive with data-origin lineage.
-- More robust RAG retrieval over journal notes, filings, market context, and trade outcomes.
+- More robust retrieval over journal notes, filings, market context, and trade outcomes.
 - Automated QA smoke tests for the main demo routes.
 - Deployment-ready configuration, environment management, and CI checks.
 - Broader backtest strategy coverage with clearer benchmark comparisons.

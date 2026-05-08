@@ -1,3 +1,5 @@
+import re
+
 from .context import (
     FOREX_KEYWORDS,
     STOCK_KEYWORDS,
@@ -25,11 +27,38 @@ STRICT RULES:
 If the data is insufficient to answer, say so clearly.
 Do not guess or generalize."""
 
+KNOWN_SETUP_LABELS = {
+    "streak_pullback_confirmation": "Streak Pullback Confirmation",
+    "pattern_alert": "Pattern Alert",
+}
+
+
+def _canonical_setup_key(value) -> str:
+    key = re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
+    if key in {
+        "streak_pullback",
+        "streak_pullback_confirmation",
+        "streak_pullback_confirmation_setup",
+        "streak_pullback_confirmed",
+    }:
+        return "streak_pullback_confirmation"
+    return key
+
+
+def _display_setup(value, fallback: str | None = None) -> str:
+    key = _canonical_setup_key(value)
+    if key in KNOWN_SETUP_LABELS:
+        return KNOWN_SETUP_LABELS[key]
+    if fallback:
+        return fallback
+    return key.replace("_", " ").title() if key else "Setup"
+
 def build_question_prompt(
     question: str,
     retrieved_trades: list[dict],
     analysis_summary: dict,
-    trade_count: int
+    trade_count: int,
+    trader_profile: dict | None = None,
 ) -> str:
     """
     Builds the user message for the Q&A endpoint.
@@ -54,15 +83,42 @@ def build_question_prompt(
         f"  R/R ratio: {stats.get('risk_reward_ratio', 0):.2f}\n"
     )
 
+    profile_context = _build_profile_prompt_context(trader_profile)
+
     return f"""Trader question: "{question}"
 
 Retrieved relevant trades:
 {trade_context}
 
 {stats_context}
+{profile_context}
 
 Answer the trader's question based strictly on the
 trade data above. Be specific and cite the trades."""
+
+
+def _build_profile_prompt_context(trader_profile: dict | None) -> str:
+    profile = trader_profile if isinstance(trader_profile, dict) else {}
+    behavior = profile.get("behavior_profile") if isinstance(profile.get("behavior_profile"), dict) else {}
+    metrics = profile.get("metrics") if isinstance(profile.get("metrics"), dict) else {}
+    repeated = profile.get("repeated_mistakes") if isinstance(profile.get("repeated_mistakes"), list) else []
+    best_symbols = profile.get("best_symbols") if isinstance(profile.get("best_symbols"), list) else []
+    best_setups = profile.get("best_setups") if isinstance(profile.get("best_setups"), list) else []
+    setup_history = profile.get("setup_history") if isinstance(profile.get("setup_history"), list) else best_setups
+
+    return (
+        "Trader behavior profile:\n"
+        f"  Status: {profile.get('status', 'unknown')}\n"
+        f"  Risk score: {behavior.get('risk_score', 50)}\n"
+        f"  Confidence score: {behavior.get('confidence_score', 0)}\n"
+        f"  Behavioral warning: {behavior.get('behavioral_warning', 'No warning available')}\n"
+        f"  Profile explanation: {behavior.get('explanation', '')}\n"
+        f"  Loss rate: {metrics.get('loss_rate', 0)}%\n"
+        f"  Average confidence: {metrics.get('average_confidence', 'unknown')}\n"
+        f"  Repeated mistakes: {', '.join(item.get('tag', '') for item in repeated[:3]) or 'none'}\n"
+        f"  Best symbols: {', '.join(item.get('key', '') for item in best_symbols[:3]) or 'none'}\n"
+        f"  Setup history: {', '.join(_display_setup(item.get('key', '')) for item in setup_history[:5]) or 'none'}\n"
+    )
 
 
 def build_fallback_response(
@@ -85,6 +141,14 @@ def build_fallback_response(
     insights = analysis.get('insights', [])
     context_summary = analysis.get('context_summary', {})
     sentiment_alignment = analysis.get('sentiment_alignment', {})
+    trader_profile = analysis.get('trader_profile', {}) if isinstance(analysis.get('trader_profile'), dict) else {}
+    behavior_profile = trader_profile.get('behavior_profile', {}) if isinstance(trader_profile.get('behavior_profile'), dict) else {}
+    profile_metrics = trader_profile.get('metrics', {}) if isinstance(trader_profile.get('metrics'), dict) else {}
+    repeated_mistakes = trader_profile.get('repeated_mistakes', []) if isinstance(trader_profile.get('repeated_mistakes'), list) else []
+    setup_history = trader_profile.get('setup_history', []) if isinstance(trader_profile.get('setup_history'), list) else []
+    symbol_history = trader_profile.get('symbol_history', []) if isinstance(trader_profile.get('symbol_history'), list) else []
+    best_setups = trader_profile.get('best_setups', []) if isinstance(trader_profile.get('best_setups'), list) else []
+    best_symbols = trader_profile.get('best_symbols', []) if isinstance(trader_profile.get('best_symbols'), list) else []
 
     def money(value, signed=False):
         try:
@@ -110,6 +174,86 @@ def build_fallback_response(
             return f"This is not reliable yet because it is based on only {count} {count_word(count, 'trade')}."
         return sample_note(count)
 
+    def explicit_field(label):
+        text = str(question or "")
+        stop_labels = (
+            "symbol", "side", "setup", "entry", "exit", "quantity", "confidence",
+            "mistake", "notes", "rr", "r:r", "risk", "stop", "target",
+            "sentiment", "market context", "timeframe", "date"
+        )
+        stop_pattern = "|".join(re.escape(item) for item in stop_labels if item != label.lower())
+        pattern = rf"\b{re.escape(label)}\s*:\s*(.+?)(?=\s+\b(?:{stop_pattern})\s*:|$)"
+        match = re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL)
+        if not match:
+            return ""
+
+        raw = match.group(1).strip()
+        if label.lower() == "setup":
+            for setup_label in KNOWN_SETUP_LABELS.values():
+                known = re.search(re.escape(setup_label), raw, flags=re.IGNORECASE)
+                if known:
+                    return setup_label
+        return re.split(r"[\r\n.;|]", raw, maxsplit=1)[0].strip(" \t:-,.")
+
+    def setup_lookup_rows():
+        rows = []
+        seen = set()
+        for item in [*setup_history, *best_setups]:
+            key = _canonical_setup_key(item.get("key") if isinstance(item, dict) else "")
+            if key and key not in seen:
+                rows.append(item)
+                seen.add(key)
+        return rows
+
+    def setup_history_from_question():
+        rows = setup_lookup_rows()
+        explicit_setup = explicit_field("setup")
+        if explicit_setup:
+            setup_key = _canonical_setup_key(explicit_setup)
+            for setup in rows:
+                if _canonical_setup_key(setup.get("key")) == setup_key:
+                    return {**setup, "label": _display_setup(setup.get("key"), explicit_setup)}
+            return {
+                "key": setup_key,
+                "label": explicit_setup,
+                "trades": 0,
+                "win_rate": 0,
+                "average_rr": 0,
+                "confidence_distribution": {},
+            }
+
+        setup_terms = [
+            ("streak_pullback_confirmation", ["streak pullback", "streak", "pullback confirmation"]),
+            ("pattern_alert", ["pattern alert"]),
+        ]
+        for setup_key, aliases in setup_terms:
+            if any(alias in question_lower for alias in aliases):
+                for setup in rows:
+                    if _canonical_setup_key(setup.get("key")) == setup_key:
+                        return setup
+        if rows and any(word in question_lower for word in ["setup", "future trade", "trade analysis"]):
+            return rows[0]
+        return None
+
+    def symbol_history_from_question():
+        explicit_symbol = explicit_field("symbol").upper()
+        rows = [*symbol_history, *best_symbols]
+        if explicit_symbol:
+            for item in rows:
+                key = str(item.get("key") or item.get("symbol") or "").upper()
+                if key == explicit_symbol:
+                    return item
+            for item in by_symbol:
+                key = str(item.get("symbol") or "").upper()
+                if key == explicit_symbol:
+                    return item
+            return {"key": explicit_symbol, "symbol": explicit_symbol, "trades": 0, "win_rate": 0, "average_rr": 0}
+        for item in rows:
+            key = str(item.get("key") or "").lower()
+            if key and key in question_lower:
+                return item
+        return None
+
     def response(direct, meaning, evidence, action):
         sections = [
             f"Direct answer:\n{direct}",
@@ -128,12 +272,53 @@ def build_fallback_response(
     avg_pnl = stats.get('avg_pnl_per_trade', 0)
     rr = stats.get('risk_reward_ratio', 0)
 
+    if any(w in question_lower for w in ['behavior', 'behaviour', 'risk score', 'confidence score', 'profile']):
+        return response(
+            f"Your journal behavior profile is: {behavior_profile.get('label', 'No profile yet')}.",
+            f"Risk score {behavior_profile.get('risk_score', 50)}/100 and confidence score {behavior_profile.get('confidence_score', 0)}/100 are based on your logged journal history, not a prediction.",
+            behavior_profile.get('explanation', 'No behavior explanation is available yet.'),
+            "Before the next trade, compare the setup against the warning above and write the planned risk/reward before entry."
+        )
+
     if not total:
         return response(
             "You do not have enough trade data to analyze yet.",
             "Win rate, risk/reward, weekday patterns, and symbol patterns need logged trades before they mean anything.",
             "The current analysis contains 0 trades.",
             "Log your next trade with date, symbol, side, entry, exit, quantity, result, and notes."
+        )
+
+    future_trade_words = [
+        "future trade", "future setup", "trade analysis", "analyze trade",
+        "should i take", "setup quality", "streak pullback", "pattern alert",
+        "confirmation candle", "weak confirmation"
+    ]
+    setup_history = setup_history_from_question()
+    if setup_history and any(word in question_lower for word in future_trade_words + ["bullish", "bearish", "setup"]):
+        symbol_history = symbol_history_from_question()
+        primary_mistake = repeated_mistakes[0] if repeated_mistakes else {}
+        setup_name = setup_history.get("label") or _display_setup(setup_history.get("key", "setup"))
+        risk_score = behavior_profile.get('risk_score', 50)
+        confidence_score = behavior_profile.get('confidence_score', 0)
+        symbol_line = ""
+        if symbol_history:
+            symbol_name = str(symbol_history.get('key') or symbol_history.get('symbol') or '').upper()
+            symbol_line = (
+                f" {symbol_name} symbol history: "
+                f"{symbol_history.get('trades', 0)} trades, {symbol_history.get('win_rate', 0)}% win rate, "
+                f"average R:R {symbol_history.get('average_rr', symbol_history.get('risk_reward_ratio', 0))}."
+            )
+        mistake_line = (
+            f" Repeated {primary_mistake.get('tag')} behavior appears {primary_mistake.get('count')} times with "
+            f"{primary_mistake.get('loss_rate')}% loss rate."
+            if primary_mistake else
+            " No repeated mistake pattern is strong enough yet."
+        )
+        return response(
+            f"Use trader-profile context first: {setup_name} has {setup_history.get('trades', 0)} historical training trades, {setup_history.get('win_rate', 0)}% win rate, and average R:R {setup_history.get('average_rr', 0)}.",
+            f"Risk score {risk_score}/100 and confidence score {confidence_score}/100 come from journal behavior and setup history, not sentiment coverage or a prediction.",
+            f"Confidence distribution: {setup_history.get('confidence_distribution', {})}.{symbol_line}{mistake_line}",
+            "Before acting, check whether confirmation quality, volatility, and mistake tags match the weaker historical rows; keep this as educational decision-support only."
         )
 
     context_words = [
@@ -305,6 +490,15 @@ def build_fallback_response(
 
     if any(w in question_lower for w in
            ['loss', 'losing', 'weakness', 'weak', 'mistake', 'problem']):
+        if repeated_mistakes:
+            primary = repeated_mistakes[0]
+            return response(
+                f"Your most repeated logged mistake is {primary.get('tag')}.",
+                f"It appears {primary.get('count')} times, with a {primary.get('loss_rate')}% loss rate in those tagged trades.",
+                f"Behavior warning: {behavior_profile.get('behavioral_warning', 'No behavior warning available')}. Loss rate is {profile_metrics.get('loss_rate', 0)}%.",
+                "For the next 10 trades, add the mistake tag immediately after exit so this pattern can be validated."
+            )
+
         if total < 10:
             clue = "the sample is too small to name a reliable weakness"
             clue_evidence = (

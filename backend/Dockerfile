@@ -17,5 +17,5 @@ COPY bot/ ./bot
 # Expose port (FastAPI default)
 EXPOSE 8000
 
-# Run FastAPI via uvicorn
-CMD ["python", "-m", "uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI via uvicorn on the hosting platform's assigned port.
+CMD ["sh", "-c", "python -m uvicorn backend.server:app --host 0.0.0.0 --port ${PORT:-8000}"]

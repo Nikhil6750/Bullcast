@@ -4,7 +4,15 @@ from .strategies import apply_strategy
 
 def run_backtest(df_records: list[dict], strategy: str, initial_capital: float = 100000.0, commission: float = 0.001, slippage: float = 0.0005):
     if not df_records:
-        return {"trades": [], "metrics": {}, "equity_curve": [], "chart_data": []}
+        from .metrics import calculate_metrics
+        return {
+            "trades": [],
+            "metrics": calculate_metrics([], [], initial_capital),
+            "equity_curve": [],
+            "chart_data": [],
+            "signals": [],
+            "warnings": ["No historical market data was available for this backtest request."],
+        }
         
     df = pd.DataFrame(df_records)
     # Ensure time is sorted

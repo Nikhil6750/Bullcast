@@ -1,0 +1,57 @@
+{
+  "average_hold_duration": 4.5617,
+  "average_rr": -0.0923,
+  "bearish_setups": 1247,
+  "bullish_setups": 1313,
+  "confidence_distribution": {
+    "2": 155,
+    "3": 1423,
+    "4": 766,
+    "5": 216
+  },
+  "config": {
+    "conservative_intrabar_order": true,
+    "max_hold_candles": 36,
+    "max_pullback_candles": 2,
+    "min_streak": 4,
+    "rr_target": 2.0,
+    "tiny_threshold": 1e-10
+  },
+  "input_files": 24,
+  "invalid_reason_distribution": {
+    "breaking_candle_failed": 11799,
+    "confirmation_failed": 2577,
+    "critical_retracement": 47031,
+    "doji_in_pullback": 2216,
+    "invalid_risk": 1,
+    "missing_breaking_candle": 1
+  },
+  "invalid_setups": 63625,
+  "loss_rate": 69.45,
+  "malformed_candles": 80,
+  "mistake_distribution": {
+    "FOMO entry": 78,
+    "chasing momentum": 31,
+    "early exit": 5,
+    "emotional re-entry": 17,
+    "no patience": 120,
+    "none": 1840,
+    "overconfidence": 98,
+    "revenge trade": 254,
+    "weak confirmation": 117
+  },
+  "outcome_distribution": {
+    "STOP_LOSS": 1760,
+    "TARGET": 750,
+    "TIME_EXIT": 50
+  },
+  "output_path": "trading-ui\\public\\generated-journal-trades-latest.csv",
+  "simulated_only": true,
+  "simulated_trades_generated": 2560,
+  "strategy": "Streak Pullback Confirmation",
+  "total_input_candles": 1191705,
+  "total_setups_found": 66185,
+  "valid_candles": 1191625,
+  "valid_setups": 2560,
+  "win_rate": 30.55
+}

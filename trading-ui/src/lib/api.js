@@ -1,11 +1,4 @@
-// src/lib/api.js
-
-// Use 127.0.0.1 to avoid IPv6 localhost quirks
-// src/lib/api.js
-export const BASE_URL = "http://localhost:8000";
-
-
-
+export const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 
 // Helper: extract safe error message
