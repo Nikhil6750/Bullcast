@@ -1172,6 +1172,16 @@ export default function Journal() {
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2rem,5vw,3.5rem)", color: "#e5e5e5", margin: 0, letterSpacing: "0.04em", lineHeight: 1 }}>
             Trade Journal
           </h1>
+          <div style={{
+            marginTop: 8,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "0.66rem",
+            color: "#FFB84D",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}>
+            BUILD MARKER: journal-supabase-reset-v1
+          </div>
           <StorageDebugStatus status={storageStatus} />
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
