@@ -103,6 +103,7 @@ def test_mistake_summary_fallback_when_gemini_request_fails(monkeypatch):
 
 def test_mistake_summary_uses_gemini_when_text_is_recoverable(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-secret-key")
+    captured = {}
 
     class FakeResponse:
         def raise_for_status(self):
@@ -126,13 +127,27 @@ def test_mistake_summary_uses_gemini_when_text_is_recoverable(monkeypatch):
                 ]
             }
 
-    monkeypatch.setattr(
-        "backend.intelligence.mistake_summary.requests.post",
-        lambda *_args, **_kwargs: FakeResponse(),
-    )
+    def fake_request(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return FakeResponse()
+
+    monkeypatch.setattr("backend.intelligence.mistake_summary.requests.post", fake_request)
 
     result = build_mistake_summary(sample_trades(), limit=100)
 
+    url = captured["args"][0]
+    request_kwargs = captured["kwargs"]
+    generation_config = request_kwargs["json"]["generationConfig"]
+
+    assert url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    assert request_kwargs["headers"]["x-goog-api-key"] == "test-secret-key"
+    assert "key=" not in url
+    assert request_kwargs["json"]["system_instruction"]["parts"][0]["text"]
+    assert generation_config["responseMimeType"] == "application/json"
+    assert generation_config["responseJsonSchema"]["type"] == "object"
+    assert generation_config["thinkingConfig"] == {"thinkingBudget": 0}
+    assert generation_config["maxOutputTokens"] == 2048
     assert result["method"] == "gemini"
     assert result["local_fallback"] is False
     assert result["gemini_configured"] is True

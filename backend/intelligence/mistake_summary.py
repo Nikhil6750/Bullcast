@@ -150,7 +150,8 @@ def _gemini_summary(
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "temperature": 0.2,
-                    "maxOutputTokens": 900,
+                    "maxOutputTokens": 2048,
+                    "thinkingConfig": {"thinkingBudget": 0},
                     "responseMimeType": "application/json",
                     "responseJsonSchema": _gemini_response_schema(),
                 },
