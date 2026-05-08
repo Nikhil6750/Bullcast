@@ -30,7 +30,7 @@ All analysis is educational decision-support based on supplied journal data and 
 - Heuristic, profile-driven risk and confidence scoring.
 - Repeated mistake detection.
 - Backtesting metrics for historical strategy simulations.
-- Local browser persistence for prototype workflows.
+- Supabase-backed journal persistence with local browser fallback.
 - Dataset readiness checks for ML/data quality review.
 - Synthetic/dev data labeling to prevent simulated rows from being mistaken for real performance.
 
@@ -69,7 +69,7 @@ Core responsibilities:
 - Journal Intelligence dashboard and Q&A workflows.
 - Dataset readiness and training report panels.
 - Symbol backtesting in Beginner and Expert modes.
-- Local persistence through `localStorage`.
+- Journal persistence through Supabase when configured, with `localStorage` fallback when Supabase env vars are missing or requests fail.
 
 ### Backend
 
@@ -217,8 +217,18 @@ All generated rows are synthetic/dev research data and must be labeled as such.
 
 ### Storage
 
-- Browser `localStorage` for prototype persistence.
-- No production database yet.
+- Supabase tables for journal trades, analysis history, and trader profiles.
+- Browser `localStorage` fallback for prototype/offline persistence.
+- The frontend uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- The Supabase service role key is not used in the frontend and must never be committed.
+
+TODO: Bullcast currently has no login/account system. The temporary Supabase RLS policies allow anon development reads/writes so the deployed prototype can persist data. Before storing real user data, add Supabase Auth and replace the dev policies with user-scoped RLS.
+
+### Deployment
+
+- Frontend: https://bullcast-ruddy.vercel.app
+- Backend: https://bullcast-api.vercel.app
+- Gemini journal mistake summaries run server-side through the backend. Gemini keys are not exposed to the React frontend.
 
 ## Project Structure
 
@@ -297,6 +307,15 @@ If needed, point the frontend to the backend:
 $env:VITE_API_URL="http://127.0.0.1:8000"
 ```
 
+Optional Supabase persistence:
+
+```powershell
+$env:VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
+$env:VITE_SUPABASE_ANON_KEY="your-supabase-anon-or-publishable-key"
+```
+
+If those variables are missing, or if a Supabase request fails, Bullcast keeps using browser `localStorage`.
+
 ### Run Tests
 
 ```powershell
@@ -339,9 +358,9 @@ This example is based on generated simulated training rows. The numbers are desc
 - Synthetic metrics are not real performance.
 - No live broker integration or order execution.
 - No real-money trading workflow.
-- Persistence is local-first through browser `localStorage`.
+- Persistence supports Supabase with browser `localStorage` fallback.
 - No production authentication or account system yet.
-- No production database yet.
+- Current Supabase policies are dev-only anon policies until Supabase Auth and user-scoped RLS are added.
 - Backtesting depends on historical data quality and assumptions.
 - Trader intelligence outputs are educational and journal-grounded, not predictive.
 - The system is not production financial infrastructure.
@@ -349,8 +368,8 @@ This example is based on generated simulated training rows. The numbers are desc
 ## Future Improvements
 
 - Real paper-trade journal collection workflows.
-- Supabase/Postgres persistence.
 - User authentication and account-level journals.
+- Production Supabase RLS scoped by authenticated user.
 - Improved training-report workflows with stronger validation and governance.
 - Better visual analytics for setup history and behavior patterns.
 - Deployment-ready configuration.

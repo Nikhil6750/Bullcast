@@ -9,7 +9,15 @@ import {
   getTrainingReport,
   summarizeJournalMistakes,
 } from '../services/api'
-import { STORAGE_KEYS, appendStorageItem, readStorage, writeStorage } from '../services/storage'
+import { STORAGE_KEYS, readStorage } from '../services/storage'
+import {
+  appendAnalysisHistoryToStorage,
+  formatStorageMode,
+  getInitialStorageMode,
+  isSupabasePersistenceConfigured,
+  loadJournalTradesFromStorage,
+  saveTraderProfileToStorage,
+} from '../services/supabaseStorage'
 
 const STORAGE_KEY = STORAGE_KEYS.journal
 
@@ -2314,6 +2322,28 @@ function MistakeSummaryPanel({ trades, summary, loading, error, onSummarize }) {
   )
 }
 
+function StorageModeIndicator({ mode }) {
+  const isSupabase = mode === 'supabase'
+  return (
+    <span
+      style={{
+        padding: '3px 7px',
+        borderRadius: 3,
+        border: `1px solid ${isSupabase ? 'rgba(0,255,135,0.2)' : 'rgba(255,184,77,0.2)'}`,
+        background: isSupabase ? 'rgba(0,255,135,0.06)' : 'rgba(255,184,77,0.06)',
+        color: isSupabase ? '#00FF87' : '#FFB84D',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '0.58rem',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        lineHeight: 1.3,
+      }}
+    >
+      Storage: {formatStorageMode(mode)}
+    </span>
+  )
+}
+
 export default function Intelligence() {
   const [trades, setTrades] = useState(() => {
     try {
@@ -2324,6 +2354,8 @@ export default function Intelligence() {
     }
   })
 
+  const [storageMode, setStorageMode] = useState(() => getInitialStorageMode())
+  const [storageHydrated, setStorageHydrated] = useState(() => !isSupabasePersistenceConfigured())
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -2340,12 +2372,27 @@ export default function Intelligence() {
   const inputRef = useRef(null)
 
   useEffect(() => {
+    if (!isSupabasePersistenceConfigured()) return undefined
+
+    let active = true
+    loadJournalTradesFromStorage().then((result) => {
+      if (!active) return
+      setStorageMode(result.mode)
+      setTrades(Array.isArray(result.trades) ? result.trades.map(normalizeTrade) : [])
+      setStorageHydrated(true)
+    })
+
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (!storageHydrated) return
     if (trades.length === 0) {
       setAnalysis(null)
       return
     }
     runAnalysis()
-  }, [trades])
+  }, [trades, storageHydrated])
 
   const runAnalysis = async () => {
     setLoading(true)
@@ -2353,16 +2400,19 @@ export default function Intelligence() {
     try {
       const result = await analyzeJournal(trades)
       setAnalysis(result)
+      let persistenceMode = null
       if (result?.trader_profile) {
-        writeStorage(STORAGE_KEYS.traderProfile, result.trader_profile)
+        const profileResult = await saveTraderProfileToStorage(result.trader_profile)
+        persistenceMode = profileResult.mode
       }
-      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+      const historyResult = await appendAnalysisHistoryToStorage({
         type: 'journal_analysis',
         timestamp: new Date().toISOString(),
         trade_count: trades.length,
         basic_stats: result?.basic_stats || {},
         trader_profile: result?.trader_profile || null,
       })
+      setStorageMode(historyResult.mode || persistenceMode || storageMode)
     } catch (e) {
       setError(
         e.message?.includes('fetch')
@@ -2395,10 +2445,12 @@ export default function Intelligence() {
         method: result.method,
       }
       setChatHistory((h) => [...h, assistantMsg])
+      let persistenceMode = null
       if (result?.trader_profile) {
-        writeStorage(STORAGE_KEYS.traderProfile, result.trader_profile)
+        const profileResult = await saveTraderProfileToStorage(result.trader_profile)
+        persistenceMode = profileResult.mode
       }
-      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+      const historyResult = await appendAnalysisHistoryToStorage({
         type: 'journal_question',
         timestamp: new Date().toISOString(),
         trade_count: trades.length,
@@ -2407,6 +2459,7 @@ export default function Intelligence() {
         sources: result?.sources || [],
         trader_profile: result?.trader_profile || null,
       })
+      setStorageMode(historyResult.mode || persistenceMode || storageMode)
     } catch {
       setAskError('Could not get answer. Try again.')
       setChatHistory((h) => h.slice(0, -1))
@@ -2428,7 +2481,7 @@ export default function Intelligence() {
     try {
       const result = await summarizeJournalMistakes(trades, 100)
       setMistakeSummary(result)
-      appendStorageItem(STORAGE_KEYS.analysisHistory, {
+      const historyResult = await appendAnalysisHistoryToStorage({
         type: 'mistake_summary',
         timestamp: new Date().toISOString(),
         trade_count: trades.length,
@@ -2436,6 +2489,7 @@ export default function Intelligence() {
         model: result?.model,
         local_fallback: result?.local_fallback === true,
       })
+      setStorageMode(historyResult.mode)
     } catch (e) {
       setMistakeError(
         e.message?.includes('fetch')
@@ -2462,18 +2516,21 @@ export default function Intelligence() {
       }}
     >
       <div style={{ marginBottom: 36 }}>
-        <p
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '0.7rem',
-            letterSpacing: '0.16em',
-            color: '#C8F135',
-            textTransform: 'uppercase',
-            marginBottom: 8,
-          }}
-        >
-          AI-Powered - Behavioral Finance
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+          <p
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.7rem',
+              letterSpacing: '0.16em',
+              color: '#C8F135',
+              textTransform: 'uppercase',
+              margin: 0,
+            }}
+          >
+            AI-Powered - Behavioral Finance
+          </p>
+          <StorageModeIndicator mode={storageMode} />
+        </div>
 
         <h1
           style={{

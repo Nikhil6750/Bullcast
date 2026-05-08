@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { exportTradeDataset } from "../services/api";
-import { STORAGE_KEYS } from "../services/storage";
+import { STORAGE_KEYS, readStorage } from "../services/storage";
+import {
+  createJournalTradeId,
+  deleteJournalTradeFromStorage,
+  formatStorageMode,
+  getInitialStorageMode,
+  isSupabasePersistenceConfigured,
+  loadJournalTradesFromStorage,
+  saveJournalTradesToStorage,
+} from "../services/supabaseStorage";
 
 const STORAGE_KEY = STORAGE_KEYS.journal;
 
@@ -211,9 +220,7 @@ function normalizeTrade(trade, index = null) {
 
 function loadTrades() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = readStorage(STORAGE_KEY, []);
     return Array.isArray(parsed) ? parsed.map((trade, index) => normalizeTrade(trade, index)) : [];
   } catch {
     return [];
@@ -228,14 +235,6 @@ function loadRawStoredTrades() {
     return Array.isArray(parsed) ? parsed.filter(trade => trade && typeof trade === "object") : [];
   } catch {
     return [];
-  }
-}
-
-function saveTrades(trades) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
-  } catch (e) {
-    console.error("Journal save failed:", e);
   }
 }
 
@@ -373,6 +372,7 @@ function normalizeImportedTrade(row, index) {
 
   const rawSide = String(data.type || "LONG").trim().toUpperCase();
   const type = rawSide === "SHORT" || rawSide === "SELL" ? "SHORT" : "LONG";
+  const importDate = String(data.date || dateStamp()).trim();
   const entry = parseOptionalNumber(data.entry_price);
   const exit = parseOptionalNumber(data.exit_price);
   const quantity = parseOptionalNumber(data.quantity);
@@ -388,8 +388,8 @@ function normalizeImportedTrade(row, index) {
 
   return {
     trade: normalizeTrade({
-      id: String(data.id || "").trim() || `${simulatedImport ? "SYN-PATTERN" : "IMPORT"}-${dateStamp()}-${index + 1}-${symbol}`,
-      date: String(data.date || dateStamp()).trim(),
+      id: createJournalTradeId(String(data.id || "").trim() || `${simulatedImport ? "SYN-PATTERN" : "IMPORT"}-${importDate}-${index + 1}-${symbol}-${type}-${entry}-${exit}-${quantity}`),
+      date: importDate,
       symbol,
       asset_type: ASSET_TYPES.includes(assetType) ? assetType : inferAssetType(symbol),
       type,
@@ -488,7 +488,7 @@ function AddTradeModal({ onClose, onSave, initialTrade = null }) {
     const { pnl, pnl_pct, result } = calcPnl(form.type, entry, exit, qty);
     const symbol = form.symbol.trim().toUpperCase();
     onSave({
-      id: initialTrade?.id || Date.now().toString(),
+      id: initialTrade?.id || createJournalTradeId(),
       date: form.date,
       symbol,
       asset_type: ASSET_TYPES.includes(form.asset_type) ? form.asset_type : inferAssetType(symbol),
@@ -769,6 +769,7 @@ function RecommendedLabel({ children }) {
 // --- Main Journal Page ---
 export default function Journal() {
   const [trades, setTrades] = useState(() => loadTrades());
+  const [storageMode, setStorageMode] = useState(() => getInitialStorageMode());
   const [showModal, setShowModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [sortCol, setSortCol] = useState("date");
@@ -779,8 +780,32 @@ export default function Journal() {
   const [mlDatasetExporting, setMlDatasetExporting] = useState(false);
   const [mlDatasetExportSummary, setMlDatasetExportSummary] = useState(null);
   const importInputRef = useRef(null);
+  const storageHydratedRef = useRef(!isSupabasePersistenceConfigured());
 
-  useEffect(() => { saveTrades(trades); }, [trades]);
+  useEffect(() => {
+    if (!isSupabasePersistenceConfigured()) return undefined;
+
+    let active = true;
+    loadJournalTradesFromStorage().then((result) => {
+      if (!active) return;
+      setStorageMode(result.mode);
+      setTrades(result.trades.map((trade, index) => normalizeTrade(trade, index)));
+      storageHydratedRef.current = true;
+    });
+
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!storageHydratedRef.current) return undefined;
+
+    let active = true;
+    saveJournalTradesToStorage(trades).then((result) => {
+      if (active) setStorageMode(result.mode);
+    });
+
+    return () => { active = false; };
+  }, [trades]);
 
   const saveTrade = useCallback((trade) => {
     const normalized = normalizeTrade(trade);
@@ -805,6 +830,9 @@ export default function Journal() {
 
   const deleteTrade = useCallback((id) => {
     setTrades(prev => prev.filter(t => t.id !== id));
+    deleteJournalTradeFromStorage(id).then((result) => {
+      setStorageMode(result.mode);
+    });
   }, []);
 
   const handleImportFile = useCallback(async (event) => {
@@ -832,12 +860,13 @@ export default function Journal() {
         }
       });
 
-      const existing = loadRawStoredTrades().map((trade, index) => normalizeTrade(trade, index));
+      const existing = trades.map((trade, index) => normalizeTrade(trade, index));
       const { merged, updatedCount } = mergeImportedTrades(existing, importedTrades);
       const syntheticImported = importedTrades.some(isSyntheticTrade);
 
       if (importedTrades.length > 0) {
-        saveTrades(merged);
+        const saveResult = await saveJournalTradesToStorage(merged);
+        setStorageMode(saveResult.mode);
         setTrades(merged);
       }
 
@@ -862,7 +891,7 @@ export default function Journal() {
       setImporting(false);
       if (event.target) event.target.value = "";
     }
-  }, []);
+  }, [trades]);
 
   const exportRealTradesJSON = useCallback(() => {
     const localTrades = loadRawStoredTrades();
@@ -1002,8 +1031,11 @@ export default function Journal() {
       {/* Page Header */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 16, marginBottom: 24 }}>
         <div>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.7rem", color: "#C8F135", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 4 }}>
-            Personal
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.7rem", color: "#C8F135", letterSpacing: "0.16em", textTransform: "uppercase" }}>
+              Personal
+            </div>
+            <StorageModeIndicator mode={storageMode} />
           </div>
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2rem,5vw,3.5rem)", color: "#e5e5e5", margin: 0, letterSpacing: "0.04em", lineHeight: 1 }}>
             Trade Journal
@@ -1344,6 +1376,26 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
         </div>
       )}
     </div>
+  );
+}
+
+function StorageModeIndicator({ mode }) {
+  const isSupabase = mode === "supabase";
+  return (
+    <span style={{
+      padding: "3px 7px",
+      borderRadius: 3,
+      border: `1px solid ${isSupabase ? "rgba(0,255,135,0.2)" : "rgba(255,184,77,0.2)"}`,
+      background: isSupabase ? "rgba(0,255,135,0.06)" : "rgba(255,184,77,0.06)",
+      color: isSupabase ? "#00FF87" : "#FFB84D",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: "0.58rem",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      lineHeight: 1.3,
+    }}>
+      Storage: {formatStorageMode(mode)}
+    </span>
   );
 }
 
