@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from typing import Any
 
 import requests
@@ -20,7 +21,15 @@ DISCLAIMER = (
     "does not provide buy/sell advice, and does not claim or imply profitability."
 )
 FALLBACK_MISSING_KEY = "GEMINI_API_KEY is not configured."
-FALLBACK_GEMINI_ERROR = "Gemini summary failed; deterministic local fallback was used."
+FALLBACK_REASONS = {
+    "missing_api_key": FALLBACK_MISSING_KEY,
+    "gemini_timeout": "Gemini API request timed out.",
+    "gemini_http_error": "Gemini API returned an error response.",
+    "gemini_request_error": "Gemini API request failed.",
+    "gemini_invalid_response": "Gemini API returned an unreadable response.",
+    "gemini_empty_response": "Gemini API returned no summary text.",
+    "gemini_safety_validation": "Gemini response failed safety validation.",
+}
 
 _NONE_TAGS = {"", "none", "n/a", "na", "no mistake", "unknown", "null"}
 _UNSAFE_ADVICE_RE = re.compile(
@@ -28,6 +37,14 @@ _UNSAFE_ADVICE_RE = re.compile(
     r"(buy|sell|long|short|enter|exit)\b|\bmarket\s+will\b|\bguarantee[ds]?\b",
     re.IGNORECASE,
 )
+
+
+@dataclass
+class GeminiSummaryFailure(Exception):
+    category: str
+
+    def __str__(self) -> str:
+        return self.category
 
 
 def build_mistake_summary(
@@ -38,38 +55,66 @@ def build_mistake_summary(
 ) -> dict[str, Any]:
     normalized = _normalize_trades(trades, limit=limit)
     key = api_key if api_key is not None else os.getenv("GEMINI_API_KEY", "")
+    gemini_configured = bool(key)
 
     if not key:
         return _local_fallback_summary(
             normalized,
             limit=limit,
-            reason=FALLBACK_MISSING_KEY,
+            failure_category="missing_api_key",
+            gemini_configured=gemini_configured,
         )
 
     try:
         summary = _gemini_summary(normalized, api_key=key, limit=limit)
-    except Exception as exc:
-        logger.warning("Gemini mistake summary failed: %s", exc)
+    except GeminiSummaryFailure as exc:
+        logger.warning(
+            "Gemini mistake summary failed: category=%s model=%s configured=%s",
+            exc.category,
+            GEMINI_MODEL,
+            gemini_configured,
+        )
         return _local_fallback_summary(
             normalized,
             limit=limit,
-            reason=FALLBACK_GEMINI_ERROR,
+            failure_category=exc.category,
+            gemini_configured=gemini_configured,
+        )
+    except Exception:
+        logger.warning(
+            "Gemini mistake summary failed: category=gemini_request_error model=%s configured=%s",
+            GEMINI_MODEL,
+            gemini_configured,
+        )
+        return _local_fallback_summary(
+            normalized,
+            limit=limit,
+            failure_category="gemini_request_error",
+            gemini_configured=gemini_configured,
         )
 
     if _contains_unsafe_advice(summary):
-        logger.warning("Gemini mistake summary failed safety validation.")
+        logger.warning(
+            "Gemini mistake summary failed: category=gemini_safety_validation model=%s configured=%s",
+            GEMINI_MODEL,
+            gemini_configured,
+        )
         return _local_fallback_summary(
             normalized,
             limit=limit,
-            reason=FALLBACK_GEMINI_ERROR,
+            failure_category="gemini_safety_validation",
+            gemini_configured=gemini_configured,
         )
 
     return {
         **summary,
         "method": "gemini",
         "model": GEMINI_MODEL,
+        "gemini_model": GEMINI_MODEL,
+        "gemini_configured": gemini_configured,
         "local_fallback": False,
         "fallback_reason": None,
+        "failure_category": None,
         "trade_count": len(normalized),
         "limit": limit,
         "educational_disclaimer": DISCLAIMER,
@@ -83,38 +128,91 @@ def _gemini_summary(
     limit: int,
 ) -> dict[str, Any]:
     prompt = _build_gemini_prompt(trades, limit=limit)
-    response = requests.post(
-        GEMINI_ENDPOINT,
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key,
-        },
-        json={
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": (
-                            "You are a trading journal coach. You summarize behavior from supplied journal data only. "
-                            "Never predict market direction. Never give buy/sell, entry, exit, or position advice. "
-                            "Never claim profitability. Keep output educational and deterministic in tone."
-                        )
-                    }
-                ]
+    try:
+        response = requests.post(
+            GEMINI_ENDPOINT,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
             },
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "maxOutputTokens": 900,
-                "responseMimeType": "application/json",
+            json={
+                "system_instruction": {
+                    "parts": [
+                        {
+                            "text": (
+                                "You are a trading journal coach. You summarize behavior from supplied journal data only. "
+                                "Never predict market direction. Never give buy/sell, entry, exit, or position advice. "
+                                "Never claim profitability. Keep output educational and deterministic in tone."
+                            )
+                        }
+                    ]
+                },
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "maxOutputTokens": 900,
+                    "responseMimeType": "application/json",
+                    "responseJsonSchema": _gemini_response_schema(),
+                },
             },
-        },
-        timeout=20,
-    )
-    response.raise_for_status()
-    payload = response.json()
+            timeout=20,
+        )
+        response.raise_for_status()
+    except requests.Timeout as exc:
+        raise GeminiSummaryFailure("gemini_timeout") from exc
+    except requests.HTTPError as exc:
+        raise GeminiSummaryFailure("gemini_http_error") from exc
+    except requests.RequestException as exc:
+        raise GeminiSummaryFailure("gemini_request_error") from exc
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise GeminiSummaryFailure("gemini_invalid_response") from exc
+
     text = _extract_text(payload)
-    parsed = _loads_json_object(text)
-    return _coerce_summary(parsed)
+    try:
+        parsed = _loads_json_object(text)
+        return {
+            **_coerce_summary(parsed),
+            "gemini_response_format": "json_schema",
+        }
+    except ValueError:
+        return {
+            **_coerce_summary(_summary_from_gemini_text(text)),
+            "gemini_response_format": "text_recovered",
+        }
+
+
+def _gemini_response_schema() -> dict[str, Any]:
+    list_of_strings = {
+        "type": "array",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "summary": {
+                "type": "string",
+                "description": "A concise educational summary of repeated journal mistakes.",
+            },
+            "repeated_mistakes": list_of_strings,
+            "behavioral_patterns": list_of_strings,
+            "weak_setups": list_of_strings,
+            "confidence_issues": list_of_strings,
+            "improvement_checklist": list_of_strings,
+        },
+        "required": [
+            "summary",
+            "repeated_mistakes",
+            "behavioral_patterns",
+            "weak_setups",
+            "confidence_issues",
+            "improvement_checklist",
+        ],
+    }
 
 
 def _build_gemini_prompt(trades: list[dict[str, Any]], *, limit: int) -> str:
@@ -136,10 +234,12 @@ def _local_fallback_summary(
     trades: list[dict[str, Any]],
     *,
     limit: int,
-    reason: str,
+    failure_category: str,
+    gemini_configured: bool,
 ) -> dict[str, Any]:
     stats = _journal_stats(trades)
     trade_count = len(trades)
+    reason = FALLBACK_REASONS.get(failure_category, FALLBACK_REASONS["gemini_request_error"])
 
     if trade_count == 0:
         summary = "Local fallback: no journal trades were provided, so no repeated mistake pattern can be confirmed yet."
@@ -168,8 +268,11 @@ def _local_fallback_summary(
         "educational_disclaimer": DISCLAIMER,
         "method": "local_fallback",
         "model": "local-deterministic",
+        "gemini_model": GEMINI_MODEL,
+        "gemini_configured": gemini_configured,
         "local_fallback": True,
         "fallback_reason": reason,
+        "failure_category": failure_category,
         "trade_count": trade_count,
         "limit": limit,
     }
@@ -356,11 +459,11 @@ def _coerce_summary(parsed: dict[str, Any]) -> dict[str, Any]:
 def _extract_text(payload: dict[str, Any]) -> str:
     candidates = payload.get("candidates") if isinstance(payload, dict) else None
     if not candidates:
-        raise ValueError("Gemini response did not include candidates.")
+        raise GeminiSummaryFailure("gemini_empty_response")
     parts = candidates[0].get("content", {}).get("parts", [])
     text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip()
     if not text:
-        raise ValueError("Gemini response did not include text.")
+        raise GeminiSummaryFailure("gemini_empty_response")
     return text
 
 
@@ -373,6 +476,23 @@ def _loads_json_object(text: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("Gemini response was not a JSON object.")
     return parsed
+
+
+def _summary_from_gemini_text(text: str) -> dict[str, Any]:
+    clean = " ".join(str(text or "").split())
+    if not clean:
+        raise GeminiSummaryFailure("gemini_empty_response")
+    return {
+        "summary": clean[:1200],
+        "repeated_mistakes": ["Gemini returned unstructured text; review the summary for repeated mistake details."],
+        "behavioral_patterns": ["Gemini returned unstructured text; review the summary for behavioral pattern details."],
+        "weak_setups": ["Gemini returned unstructured text; review the summary for weak setup details."],
+        "confidence_issues": ["Gemini returned unstructured text; review the summary for confidence issue details."],
+        "improvement_checklist": [
+            "Use the Gemini summary as journal review only.",
+            "Keep tagging setup, mistake, confidence, and rule-following fields for better summaries.",
+        ],
+    }
 
 
 def _contains_unsafe_advice(summary: dict[str, Any]) -> bool:
