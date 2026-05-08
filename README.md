@@ -1,8 +1,8 @@
 # Bullcast
 
-Bullcast is an AI-assisted trading research and journal intelligence platform. It converts market data and journal entries into structured insights for educational decision-support.
+Bullcast is a trading research and journal intelligence platform. It uses rule-based analytics, journal retrieval, and profile-aware coaching logic to convert market data and journal entries into structured educational decision-support.
 
-The project combines a React frontend, a Python backend, an offline OHLC pattern-conversion pipeline, journal analytics, backtesting, dataset readiness checks, and trader-behavior intelligence. It is designed to demonstrate practical product engineering around trading-data workflows, not to provide trading instructions.
+The project combines a React frontend, a Python backend, an offline OHLC pattern-conversion pipeline, journal analytics, backtesting, dataset readiness checks, and behavioral analytics. It is designed to demonstrate practical product engineering around trading-data workflows, not to provide trading instructions.
 
 ## Important Disclaimer
 
@@ -13,7 +13,8 @@ Bullcast is not financial advice.
 - It does not support real-money trading automation.
 - It does not generate buy/sell signals or guaranteed outcomes.
 - Synthetic/generated trades are for development, research, and coaching simulation only.
-- Model and simulated-trade metrics are not real trading performance.
+- Risk and confidence scores are heuristic, profile-driven summaries, not probabilities or market predictions.
+- Model/report metrics and simulated-trade metrics are not real trading performance.
 
 All analysis is educational decision-support based on supplied journal data and historical simulations.
 
@@ -24,9 +25,9 @@ All analysis is educational decision-support based on supplied journal data and 
 - Streak Pullback Confirmation pattern engine.
 - Simulated journal trade generation from OHLC candles.
 - Trader profile generation from journal history.
-- Setup-aware Intelligence analysis.
+- Setup-aware journal analysis.
 - Symbol-aware historical matching.
-- Risk score and confidence score generation.
+- Heuristic, profile-driven risk and confidence scoring.
 - Repeated mistake detection.
 - Backtesting metrics for historical strategy simulations.
 - Local browser persistence for prototype workflows.
@@ -42,8 +43,8 @@ OHLC datasets
   -> Journal import
   -> normalized journal model
   -> trader profile
-  -> Intelligence analysis
-  -> risk / confidence / repeated-mistake insights
+  -> setup-aware journal analysis
+  -> heuristic risk / confidence / repeated-mistake insights
 ```
 
 The offline converter reads OHLC CSV files and produces simulated Bullcast journal entries. The frontend can import those rows into the Journal. The backend then normalizes journal rows, builds a trader profile, and uses that profile to answer future-trade and performance questions.
@@ -65,7 +66,7 @@ The frontend is a React + Vite application in `trading-ui/`.
 Core responsibilities:
 
 - Journal entry management and import/export.
-- Intelligence dashboard and Q&A workflows.
+- Journal Intelligence dashboard and Q&A workflows.
 - Dataset readiness and training report panels.
 - Symbol backtesting in Beginner and Expert modes.
 - Local persistence through `localStorage`.
@@ -77,8 +78,8 @@ The backend is a Python API centered around `backend/server.py`.
 Core responsibilities:
 
 - Journal model validation and normalization.
-- Intelligence analysis and trader-profile generation.
-- Future-trade behavior assessment.
+- Trader-profile generation and setup-aware journal analysis.
+- Future-trade journal-history comparison and behavior assessment.
 - Dataset export and readiness metadata.
 - Historical backtesting.
 - Market data and sentiment context endpoints.
@@ -124,9 +125,9 @@ Each generated trade includes:
 
 This engine is an offline research/data-generation pipeline. It is not a live trading strategy selector.
 
-## Intelligence Engine
+## Trader Intelligence Engine
 
-The Intelligence layer is built around:
+The trader intelligence layer is built around:
 
 ```text
 backend/intelligence/
@@ -140,16 +141,17 @@ It supports:
 - Symbol-aware matching against journal history.
 - Confidence distribution summaries.
 - Repeated mistake pattern detection.
-- Educational risk scoring.
-- Educational confidence scoring.
+- Heuristic, profile-driven risk scoring.
+- Heuristic, profile-driven confidence scoring.
+- RAG-style journal retrieval before sparse sentiment fallback.
 - Simulated-data disclaimers when generated rows are used.
 
-The engine is deterministic and journal-grounded. It does not predict market direction. It explains how a proposed future trade compares to historical journal patterns.
+The engine is deterministic and journal-grounded. It does not predict market direction, expected profit, or trade outcome. It explains how a proposed future trade compares to historical journal patterns.
 
 Example behaviors:
 
-- Reduce confidence when similar setups historically underperformed.
-- Raise behavior risk when repeated mistake tags appear.
+- Lower the heuristic confidence score when similar setups historically underperformed.
+- Raise the heuristic behavior-risk score when repeated mistake tags appear.
 - Highlight weak confirmation, revenge-trade, overconfidence, or high-volatility context when present.
 - Avoid sparse sentiment fallback when matching setup history exists.
 
@@ -329,7 +331,7 @@ NIFTY symbol history is included when available.
 Repeated revenge_trade behavior appears 168 times.
 ```
 
-This example is based on generated simulated training rows. It is not real trading performance and should not be interpreted as a prediction or trading recommendation.
+This example is based on generated simulated training rows. The numbers are descriptive synthetic/dev summaries, not predictive model metrics, real trading performance, or trading recommendations.
 
 ## Current Limitations
 
@@ -341,7 +343,7 @@ This example is based on generated simulated training rows. It is not real tradi
 - No production authentication or account system yet.
 - No production database yet.
 - Backtesting depends on historical data quality and assumptions.
-- Intelligence outputs are educational and journal-grounded, not predictive.
+- Trader intelligence outputs are educational and journal-grounded, not predictive.
 - The system is not production financial infrastructure.
 
 ## Future Improvements
@@ -349,7 +351,7 @@ This example is based on generated simulated training rows. It is not real tradi
 - Real paper-trade journal collection workflows.
 - Supabase/Postgres persistence.
 - User authentication and account-level journals.
-- Improved model training with stronger validation and governance.
+- Improved training-report workflows with stronger validation and governance.
 - Better visual analytics for setup history and behavior patterns.
 - Deployment-ready configuration.
 - Richer generated-dataset comparison views.
@@ -370,4 +372,4 @@ Bullcast demonstrates:
 - Test coverage for converter, profile, and matching behavior.
 - Careful handling of synthetic data and domain-specific disclaimers.
 
-The project intentionally avoids claims of profitability or production trading readiness. Its focus is engineering rigor around trading-research workflows, data quality, and explainable journal intelligence.
+The project intentionally avoids claims of profitability or production trading readiness. Its focus is engineering rigor around trading-research workflows, data quality, explainable journal retrieval, and behavioral analytics.
