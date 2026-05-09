@@ -18,6 +18,9 @@ export default function Navbar() {
           <Link to="/journal" className={`py-1 transition-colors ${isActive("/journal")}`}>Journal</Link>
           <Link to="/intelligence" className={`py-1 transition-colors ${isActive("/intelligence")}`}>Intelligence</Link>
         </div>
+        <div className="font-mono text-[0.58rem] uppercase tracking-wider text-primary/80">
+          AUTH BUILD: supabase-auth-v1
+        </div>
         <AuthStatus />
       </div>
     </nav>

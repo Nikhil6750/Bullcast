@@ -118,7 +118,7 @@ export default function AuthStatus() {
 
   return (
     <div className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-wider">
-      <div className="hidden flex-col items-end leading-tight xl:flex">
+      <div className="flex flex-col items-end leading-tight">
         <span className="text-amber-300">Local demo mode</span>
         <span className="text-[0.55rem] text-neutral">Sign in for cloud sync</span>
       </div>
