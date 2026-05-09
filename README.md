@@ -1,6 +1,6 @@
 # Bullcast
 
-Bullcast is a trading research and journal intelligence platform. It uses rule-based analytics, journal retrieval, and profile-aware coaching logic to convert market data and journal entries into structured educational decision-support.
+Bullcast is a trading research and journal platform focused on rule-based trade intelligence and deterministic journal analytics. It uses journal retrieval and profile-aware coaching logic to convert market data and journal entries into structured educational decision-support.
 
 The project combines a React frontend, a Python backend, an offline OHLC pattern-conversion pipeline, journal analytics, backtesting, dataset readiness checks, and behavioral analytics. It is designed to demonstrate practical product engineering around trading-data workflows, not to provide trading instructions.
 
@@ -18,6 +18,14 @@ Bullcast is not financial advice.
 
 All analysis is educational decision-support based on supplied journal data and historical simulations.
 
+## Current State
+
+- Frontend deployed on Vercel: https://bullcast-ruddy.vercel.app
+- Supabase journal persistence is implemented for journal trades, analysis history, and trader profiles when configured.
+- Browser `localStorage` fallback exists when Supabase environment variables are missing or Supabase requests fail.
+- Supabase Auth and user-scoped RLS are still pending and must be completed before storing real user data.
+- LLM/RAG/ML features are planned or in progress, not completed production capabilities. The current reliable baseline is rule-based trade intelligence and deterministic journal analytics.
+
 ## Key Features
 
 - Trade journal import for CSV/XLSX files.
@@ -31,7 +39,7 @@ All analysis is educational decision-support based on supplied journal data and 
 - Repeated mistake detection.
 - Backtesting metrics for historical strategy simulations.
 - Supabase-backed journal persistence with local browser fallback.
-- Dataset readiness checks for ML/data quality review.
+- Dataset readiness checks for planned ML/data quality review.
 - Synthetic/dev data labeling to prevent simulated rows from being mistaken for real performance.
 
 ## How The System Works
@@ -143,7 +151,8 @@ It supports:
 - Repeated mistake pattern detection.
 - Heuristic, profile-driven risk scoring.
 - Heuristic, profile-driven confidence scoring.
-- RAG-style journal retrieval before sparse sentiment fallback.
+- Journal-history retrieval and matching before sparse sentiment fallback.
+- Planned LLM/RAG/ML extension points that are not production-complete.
 - Simulated-data disclaimers when generated rows are used.
 
 The engine is deterministic and journal-grounded. It does not predict market direction, expected profit, or trade outcome. It explains how a proposed future trade compares to historical journal patterns.
@@ -226,9 +235,9 @@ TODO: Bullcast currently has no login/account system. The temporary Supabase RLS
 
 ### Deployment
 
-- Frontend: https://bullcast-ruddy.vercel.app
+- Frontend: deployed on Vercel at https://bullcast-ruddy.vercel.app
 - Backend: https://bullcast-api.vercel.app
-- Gemini journal mistake summaries run server-side through the backend. Gemini keys are not exposed to the React frontend.
+- LLM/RAG/ML features are planned or in progress. Any server-side model experiments must keep API keys out of the React frontend and preserve deterministic fallbacks when not configured.
 
 ## Project Structure
 
@@ -363,6 +372,7 @@ This example is based on generated simulated training rows. The numbers are desc
 - Current Supabase policies are dev-only anon policies until Supabase Auth and user-scoped RLS are added.
 - Backtesting depends on historical data quality and assumptions.
 - Trader intelligence outputs are educational and journal-grounded, not predictive.
+- LLM/RAG/ML features are planned or in progress, not completed production capabilities.
 - The system is not production financial infrastructure.
 
 ## Future Improvements
@@ -370,6 +380,7 @@ This example is based on generated simulated training rows. The numbers are desc
 - Real paper-trade journal collection workflows.
 - User authentication and account-level journals.
 - Production Supabase RLS scoped by authenticated user.
+- Planned LLM/RAG/ML extensions with clear fallback behavior and evaluation gates.
 - Improved training-report workflows with stronger validation and governance.
 - Better visual analytics for setup history and behavior patterns.
 - Deployment-ready configuration.
