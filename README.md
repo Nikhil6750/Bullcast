@@ -13,7 +13,8 @@ The project combines a React frontend, a FastAPI backend, Supabase-backed journa
 - React/Vite frontend in `trading-ui/`, deployed on Vercel.
 - FastAPI backend centered on `backend/server.py`.
 - Supabase journal persistence for trades, analysis history, and trader profiles when configured.
-- Browser `localStorage` fallback when Supabase environment variables are missing or Supabase requests fail.
+- Supabase email/password Auth support with local demo mode for signed-out users.
+- Browser `localStorage` fallback when users are signed out, Supabase environment variables are missing, or Supabase requests fail.
 - Gemini journal summary endpoint: `POST /api/intelligence/journal-summary`.
 - Deterministic intelligence modules in `backend/intelligence/` and canonical journal models in `backend/journal/`.
 - GitHub Actions CI runs backend tests and frontend production builds on `main`.
@@ -23,6 +24,7 @@ The project combines a React frontend, a FastAPI backend, Supabase-backed journa
 Implemented:
 
 - Supabase journal persistence.
+- Supabase Auth frontend support and user-scoped RLS migration for journal persistence.
 - Vercel frontend deployment: https://bullcast-ruddy.vercel.app
 - GitHub Actions CI.
 - Gemini journal summary endpoint with deterministic fallback behavior.
@@ -31,7 +33,7 @@ Implemented:
 
 Pending:
 
-- Supabase Auth + user-scoped RLS before storing real user data.
+- Apply the Supabase RLS migration in the hosted project and backfill any legacy rows that should belong to real users.
 - Backend production hardening and validation before production user workflows.
 - Deeper RAG/ML layer beyond the current deterministic analytics and optional Gemini summary.
 - More complete real paper-trade collection and account-level journal workflows.
@@ -41,6 +43,7 @@ Pending:
 - Trade journal import for CSV/XLSX files.
 - Journal CRUD, import/export, and analysis workflows.
 - Supabase-backed persistence with browser `localStorage` fallback.
+- Email/password sign up, sign in, and sign out for Supabase cloud sync.
 - Trader profile generation from journal history.
 - Setup-aware and symbol-aware historical matching.
 - Heuristic risk, confidence, and repeated-mistake scoring.
@@ -101,7 +104,7 @@ Notes:
 - Gemini keys must not be exposed through frontend `VITE_*` variables.
 - The frontend uses only Supabase URL and anon/publishable key values.
 - Supabase service-role keys must never be committed or exposed to the browser.
-- If Supabase variables are missing, Bullcast keeps using browser `localStorage`.
+- If Supabase variables are missing or the user is signed out, Bullcast keeps using browser `localStorage`.
 
 ## Testing
 
@@ -138,15 +141,15 @@ Bullcast is not financial advice.
 
 - Real journal data is needed for meaningful real trader profiling.
 - Synthetic/generated trades are for development, research, and coaching simulation only.
-- Supabase Auth and user-scoped RLS are pending before real user data should be stored.
-- Current Supabase policies are development-only until auth-scoped access is implemented.
+- The user-scoped RLS migration must be applied in Supabase before using hosted storage with real user data.
+- Existing development rows with `user_id = null` need an explicit backfill before authenticated users can see them.
 - Backtesting depends on historical data quality and modeling assumptions.
 - Gemini summarization is optional and depends on backend `GEMINI_API_KEY`; deterministic journal analytics still work without it.
 - The system is not production financial infrastructure.
 
 ## Roadmap
 
-- Add Supabase Auth and production user-scoped RLS.
+- Apply and validate Supabase Auth/RLS in the hosted project.
 - Harden backend deployment and environment handling for production workflows.
 - Expand real paper-trade journal collection.
 - Add account-level journal separation.

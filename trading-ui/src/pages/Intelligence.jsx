@@ -13,9 +13,11 @@ import { STORAGE_KEYS, readStorage } from '../services/storage'
 import {
   appendAnalysisHistoryToStorage,
   formatStorageMode,
+  getCurrentSupabaseSession,
   getInitialStorageMode,
   isSupabasePersistenceConfigured,
   loadJournalTradesFromStorage,
+  onSupabaseAuthStateChange,
   saveTraderProfileToStorage,
 } from '../services/supabaseStorage'
 
@@ -2322,10 +2324,13 @@ function MistakeSummaryPanel({ trades, summary, loading, error, onSummarize }) {
   )
 }
 
-function StorageModeIndicator({ mode }) {
+function StorageModeIndicator({ mode, status }) {
   const isSupabase = mode === 'supabase'
+  const label = isSupabase ? formatStorageMode(mode) : 'Local demo mode'
+  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; signedIn: ${status?.signedIn === true}`
   return (
     <span
+      title={title}
       style={{
         padding: '3px 7px',
         borderRadius: 3,
@@ -2339,7 +2344,7 @@ function StorageModeIndicator({ mode }) {
         lineHeight: 1.3,
       }}
     >
-      Storage: {formatStorageMode(mode)}
+      {isSupabase ? `Storage: ${label}` : label}
     </span>
   )
 }
@@ -2355,6 +2360,7 @@ export default function Intelligence() {
   })
 
   const [storageMode, setStorageMode] = useState(() => getInitialStorageMode())
+  const [storageStatus, setStorageStatus] = useState(null)
   const [storageHydrated, setStorageHydrated] = useState(() => !isSupabasePersistenceConfigured())
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -2375,14 +2381,26 @@ export default function Intelligence() {
     if (!isSupabasePersistenceConfigured()) return undefined
 
     let active = true
-    loadJournalTradesFromStorage().then((result) => {
+    const hydrateTrades = async () => {
+      const result = await loadJournalTradesFromStorage()
       if (!active) return
       setStorageMode(result.mode)
+      setStorageStatus(result)
       setTrades(Array.isArray(result.trades) ? result.trades.map(normalizeTrade) : [])
       setStorageHydrated(true)
+    }
+
+    getCurrentSupabaseSession().then(() => {
+      if (active) hydrateTrades()
+    })
+    const unsubscribe = onSupabaseAuthStateChange(() => {
+      if (active) hydrateTrades()
     })
 
-    return () => { active = false }
+    return () => {
+      active = false
+      unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -2413,6 +2431,7 @@ export default function Intelligence() {
         trader_profile: result?.trader_profile || null,
       })
       setStorageMode(historyResult.mode || persistenceMode || storageMode)
+      setStorageStatus(historyResult)
     } catch (e) {
       setError(
         e.message?.includes('fetch')
@@ -2460,6 +2479,7 @@ export default function Intelligence() {
         trader_profile: result?.trader_profile || null,
       })
       setStorageMode(historyResult.mode || persistenceMode || storageMode)
+      setStorageStatus(historyResult)
     } catch {
       setAskError('Could not get answer. Try again.')
       setChatHistory((h) => h.slice(0, -1))
@@ -2490,6 +2510,7 @@ export default function Intelligence() {
         local_fallback: result?.local_fallback === true,
       })
       setStorageMode(historyResult.mode)
+      setStorageStatus(historyResult)
     } catch (e) {
       setMistakeError(
         e.message?.includes('fetch')
@@ -2527,9 +2548,9 @@ export default function Intelligence() {
               margin: 0,
             }}
           >
-            AI-Powered - Behavioral Finance
+            Rule-Based + Optional AI
           </p>
-          <StorageModeIndicator mode={storageMode} />
+          <StorageModeIndicator mode={storageMode} status={storageStatus} />
         </div>
 
         <h1

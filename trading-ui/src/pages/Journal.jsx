@@ -8,11 +8,13 @@ import {
   createJournalTradeId,
   deleteJournalTradeFromStorage,
   formatStorageMode,
+  getCurrentSupabaseSession,
   getInitialStorageMode,
   getInitialStorageStatus,
   getSupabasePersistenceDiagnostic,
   isSupabasePersistenceConfigured,
   loadJournalTradesFromStorage,
+  onSupabaseAuthStateChange,
   saveJournalTradesToStorage,
 } from "../services/supabaseStorage";
 
@@ -240,10 +242,9 @@ function loadRawStoredTrades() {
 function getInitialJournalState() {
   const localRows = readLocalJournalRows();
   const localRowCount = localRows.length;
-  const supabaseConfigured = isSupabasePersistenceConfigured();
 
   return {
-    trades: supabaseConfigured ? [] : localRows.map((trade, index) => normalizeTrade(trade, index)),
+    trades: localRows.map((trade, index) => normalizeTrade(trade, index)),
     localRowCount,
     largeLocalDataset: localRowCount > LARGE_LOCAL_DATASET_THRESHOLD,
   };
@@ -785,8 +786,8 @@ export default function Journal() {
   const [trades, setTrades] = useState(() => initialJournalRef.current.trades);
   const [storageMode, setStorageMode] = useState(() => getInitialStorageMode());
   const [storageStatus, setStorageStatus] = useState(() => getInitialStorageStatus({
-    lastLoadTarget: isSupabasePersistenceConfigured() ? null : "local",
-    loadedRowCount: isSupabasePersistenceConfigured() ? 0 : initialJournalRef.current.localRowCount,
+    lastLoadTarget: "local",
+    loadedRowCount: initialJournalRef.current.localRowCount,
   }));
   const [largeLocalDatasetCount, setLargeLocalDatasetCount] = useState(() => (
     initialJournalRef.current.largeLocalDataset ? initialJournalRef.current.localRowCount : 0
@@ -814,23 +815,99 @@ export default function Journal() {
     if (!isSupabasePersistenceConfigured()) return undefined;
 
     let active = true;
-    setLoadingJournal(true);
-    loadJournalTradesFromStorage().then((result) => {
-      if (!active) return;
-      setStorageMode(result.mode);
-      setStorageStatus(result);
-      if (result.mode === "local" && (result.loadedRowCount ?? 0) > LARGE_LOCAL_DATASET_THRESHOLD) {
-        setLargeLocalDatasetCount(result.loadedRowCount);
+    let hydrateRun = 0;
+
+    const hydrateJournal = async (session) => {
+      const runId = hydrateRun + 1;
+      hydrateRun = runId;
+      setLoadingJournal(true);
+      const localRows = readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
+
+      try {
+        const result = await loadJournalTradesFromStorage();
+        if (!active || runId !== hydrateRun) return;
+
+        let nextResult = result;
+        let nextTrades = (result.trades || []).map((trade, index) => normalizeTrade(trade, index));
+        const signedIn = Boolean(session?.user?.id);
+
+        if (signedIn && result.mode === "supabase" && localRows.length > 0) {
+          const cloudIds = new Set(nextTrades.map(trade => trade.id));
+          const mergedTrades = [
+            ...nextTrades,
+            ...localRows.filter(trade => !cloudIds.has(trade.id)),
+          ];
+          const hasLocalRowsToSync = mergedTrades.length > nextTrades.length;
+
+          if (!hasLocalRowsToSync) {
+            setStorageMode(nextResult.mode);
+            setStorageStatus(nextResult);
+            setLargeLocalDatasetCount(0);
+            suppressNextSaveRef.current = true;
+            setTrades(nextTrades);
+            setPage(0);
+            storageHydratedRef.current = true;
+            return;
+          }
+
+          const syncResult = await saveJournalTradesToStorage(mergedTrades, { fallbackToLocal: false });
+          if (!active || runId !== hydrateRun) return;
+          nextResult = syncResult;
+
+          if (syncResult.mode === "supabase") {
+            const reloadResult = await loadJournalTradesFromStorage();
+            if (!active || runId !== hydrateRun) return;
+            nextResult = reloadResult;
+            nextTrades = (reloadResult.trades || []).map((trade, index) => normalizeTrade(trade, index));
+          } else {
+            nextTrades = mergedTrades;
+          }
+        }
+
+        setStorageMode(nextResult.mode);
+        setStorageStatus(nextResult);
+        if (nextResult.mode === "local" && (nextResult.loadedRowCount ?? 0) > LARGE_LOCAL_DATASET_THRESHOLD) {
+          setLargeLocalDatasetCount(nextResult.loadedRowCount);
+        } else if (nextResult.mode === "supabase") {
+          setLargeLocalDatasetCount(0);
+        }
+        suppressNextSaveRef.current = true;
+        setTrades(nextTrades);
+        setPage(0);
+        storageHydratedRef.current = true;
+      } catch (error) {
+        if (!active || runId !== hydrateRun) return;
+        const localRows = readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
+        const fallbackStatus = getInitialStorageStatus({
+          mode: getInitialStorageMode(),
+          lastLoadTarget: "local",
+          loadedRowCount: localRows.length,
+          lastSaveErrorMessage: error?.message || String(error),
+          action: "load journal_trades fallback",
+          localDemoMode: true,
+          signedIn: Boolean(session?.user?.id),
+        });
+        setStorageMode(fallbackStatus.mode);
+        setStorageStatus(fallbackStatus);
+        suppressNextSaveRef.current = true;
+        setTrades(localRows);
+        storageHydratedRef.current = true;
+      } finally {
+        if (active && runId === hydrateRun) setLoadingJournal(false);
       }
-      suppressNextSaveRef.current = true;
-      setTrades((result.trades || []).map((trade, index) => normalizeTrade(trade, index)));
-      setPage(0);
-      storageHydratedRef.current = true;
-    }).finally(() => {
-      if (active) setLoadingJournal(false);
+    };
+
+    getCurrentSupabaseSession().then((session) => {
+      if (active) hydrateJournal(session);
+    });
+    const unsubscribe = onSupabaseAuthStateChange((_event, session) => {
+      if (active) hydrateJournal(session);
     });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -1173,6 +1250,17 @@ export default function Journal() {
             Trade Journal
           </h1>
           <StorageDebugStatus status={storageStatus} />
+          {storageMode !== "supabase" && storageStatus?.supabaseConfigured === true && (
+            <div style={{
+              marginTop: 6,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.64rem",
+              color: "#FFB84D",
+              lineHeight: 1.5,
+            }}>
+              Local demo mode uses this browser only. Sign in to enable Supabase cloud sync.
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input
@@ -1526,7 +1614,7 @@ export default function Journal() {
       {showClearModal && (
         <ClearDatasetModal
           clearing={clearingDataset}
-          supabaseConfigured={storageStatus?.supabaseConfigured === true}
+          supabaseSyncAvailable={storageStatus?.signedIn === true && storageMode === "supabase"}
           onClose={() => setShowClearModal(false)}
           onClearLocal={clearLocalDataset}
           onClearAll={clearLocalAndSupabaseDataset}
@@ -1608,8 +1696,8 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
 
 function StorageModeIndicator({ mode, status }) {
   const isSupabase = mode === "supabase";
-  const label = isSupabase ? "Supabase" : "Local fallback";
-  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; lastLoadTarget: ${status?.lastLoadTarget || "null"}; lastSaveTarget: ${status?.lastSaveTarget || "null"}; lastSaveError: ${status?.lastSaveErrorMessage || "null"}`;
+  const label = isSupabase ? "Supabase" : "Local demo mode";
+  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; signedIn: ${status?.signedIn === true}; lastLoadTarget: ${status?.lastLoadTarget || "null"}; lastSaveTarget: ${status?.lastSaveTarget || "null"}; lastSaveError: ${status?.lastSaveErrorMessage || "null"}`;
   return (
     <span style={{
       padding: "3px 7px",
@@ -1623,7 +1711,7 @@ function StorageModeIndicator({ mode, status }) {
       textTransform: "uppercase",
       lineHeight: 1.3,
     }} title={title}>
-      Storage: {label}
+      {isSupabase ? `Storage: ${label}` : label}
     </span>
   );
 }
@@ -1641,6 +1729,7 @@ function StorageDebugStatus({ status }) {
       textTransform: "uppercase",
     }}>
       supabaseConfigured: {String(status.supabaseConfigured === true)}
+      {" | "}signedIn: {String(status.signedIn === true)}
       {" | "}lastLoadTarget: {status.lastLoadTarget || "null"}
       {" | "}lastSaveTarget: {status.lastSaveTarget || "null"}
       {" | "}loadedRowCount: {status.loadedRowCount ?? 0}
@@ -1649,7 +1738,7 @@ function StorageDebugStatus({ status }) {
   );
 }
 
-function ClearDatasetModal({ clearing, supabaseConfigured, onClose, onClearLocal, onClearAll }) {
+function ClearDatasetModal({ clearing, supabaseSyncAvailable, onClose, onClearLocal, onClearAll }) {
   return (
     <div
       onClick={onClose}
@@ -1685,7 +1774,7 @@ function ClearDatasetModal({ clearing, supabaseConfigured, onClose, onClearLocal
           lineHeight: 1.7,
           marginBottom: 18,
         }}>
-          This will remove the currently loaded journal dataset from this browser. If Supabase is connected, choose whether to also clear Supabase journal_trades.
+          This will remove the currently loaded journal dataset from this browser. Signed-in Supabase users can also clear their own cloud journal_trades rows.
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button onClick={onClose} disabled={clearing} style={modalButtonStyle("neutral", clearing)}>
@@ -1696,9 +1785,9 @@ function ClearDatasetModal({ clearing, supabaseConfigured, onClose, onClearLocal
           </button>
           <button
             onClick={onClearAll}
-            disabled={clearing || !supabaseConfigured}
-            style={modalButtonStyle("danger", clearing || !supabaseConfigured)}
-            title={supabaseConfigured ? "" : "Supabase is not configured in this build."}
+            disabled={clearing || !supabaseSyncAvailable}
+            style={modalButtonStyle("danger", clearing || !supabaseSyncAvailable)}
+            title={supabaseSyncAvailable ? "" : "Sign in to clear Supabase journal rows."}
           >
             {clearing ? "Clearing..." : "Clear Local + Supabase"}
           </button>

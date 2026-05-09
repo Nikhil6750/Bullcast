@@ -18,7 +18,7 @@ export function isSupabasePersistenceConfigured() {
 }
 
 export function getInitialStorageMode() {
-  return isSupabasePersistenceConfigured() ? STORAGE_MODES.supabase : STORAGE_MODES.local
+  return STORAGE_MODES.local
 }
 
 export function formatStorageMode(mode) {
@@ -40,6 +40,9 @@ export function getSupabasePersistenceDiagnostic() {
     lastSaveErrorMessage: null,
     lastLoadTarget: lastStorageDiagnostic?.lastLoadTarget ?? null,
     loadedRowCount: lastStorageDiagnostic?.loadedRowCount ?? 0,
+    signedIn: lastStorageDiagnostic?.signedIn ?? false,
+    localDemoMode: lastStorageDiagnostic?.localDemoMode ?? isSupabasePersistenceConfigured(),
+    authRequiredForCloudSync: isSupabasePersistenceConfigured() && !(lastStorageDiagnostic?.signedIn ?? false),
     ...lastStorageDiagnostic,
   }
 }
@@ -56,6 +59,9 @@ export function getInitialStorageStatus(overrides = {}) {
     lastSaveErrorMessage: null,
     lastLoadTarget: null,
     loadedRowCount: 0,
+    signedIn: false,
+    localDemoMode: isSupabasePersistenceConfigured(),
+    authRequiredForCloudSync: isSupabasePersistenceConfigured(),
     action: 'initial',
     rowsAttempted: 0,
     rowsSaved: 0,
@@ -63,17 +69,72 @@ export function getInitialStorageStatus(overrides = {}) {
   }
 }
 
-function getSupabaseClient() {
+export function getSupabaseClient() {
   if (!isSupabasePersistenceConfigured()) return null
   if (!supabaseClient) {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
       },
     })
   }
   return supabaseClient
+}
+
+export async function getCurrentSupabaseSession() {
+  const client = getSupabaseClient()
+  if (!client) return null
+  const { data, error } = await client.auth.getSession()
+  if (error) {
+    console.warn('Bullcast Supabase auth session unavailable', safeErrorMessage(error))
+    return null
+  }
+  return data?.session ?? null
+}
+
+export async function getCurrentSupabaseUser() {
+  const client = getSupabaseClient()
+  if (!client) return null
+  const { data, error } = await client.auth.getUser()
+  if (error) {
+    console.warn('Bullcast Supabase auth user unavailable', safeErrorMessage(error))
+    return null
+  }
+  return data?.user ?? null
+}
+
+export function onSupabaseAuthStateChange(callback) {
+  const client = getSupabaseClient()
+  if (!client) return () => {}
+  const { data } = client.auth.onAuthStateChange((event, session) => {
+    callback(event, session)
+  })
+  return () => data?.subscription?.unsubscribe?.()
+}
+
+export async function signUpWithEmail(email, password) {
+  const client = getSupabaseClient()
+  if (!client) throw new Error('Supabase is not configured.')
+  const { data, error } = await client.auth.signUp({ email, password })
+  if (error) throw error
+  return data
+}
+
+export async function signInWithEmail(email, password) {
+  const client = getSupabaseClient()
+  if (!client) throw new Error('Supabase is not configured.')
+  const { data, error } = await client.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data
+}
+
+export async function signOutSupabase() {
+  const client = getSupabaseClient()
+  if (!client) return
+  const { error } = await client.auth.signOut()
+  if (error) throw error
 }
 
 function safeErrorMessage(error) {
@@ -95,6 +156,8 @@ function logPersistenceStatus(status) {
     lastSaveErrorMessage: status.lastSaveErrorMessage,
     lastLoadTarget: status.lastLoadTarget,
     loadedRowCount: status.loadedRowCount,
+    signedIn: status.signedIn,
+    localDemoMode: status.localDemoMode,
     action: status.action,
     rowsAttempted: status.rowsAttempted,
     rowsSaved: status.rowsSaved,
@@ -116,6 +179,8 @@ function createStorageResult({
   loadedRowCount = null,
   history = null,
   trades = null,
+  signedIn = false,
+  localDemoMode = mode === STORAGE_MODES.local && isSupabasePersistenceConfigured(),
 }) {
   const errorMessage = safeErrorMessage(error)
   const isLoad = String(action || '').startsWith('load')
@@ -131,6 +196,9 @@ function createStorageResult({
     lastSaveErrorMessage: isSave ? errorMessage : lastStorageDiagnostic?.lastSaveErrorMessage ?? null,
     lastLoadTarget: isLoad ? mode : lastStorageDiagnostic?.lastLoadTarget ?? null,
     loadedRowCount: isLoad || isClear ? loadedRowCount ?? trades?.length ?? rowsSaved : lastStorageDiagnostic?.loadedRowCount ?? 0,
+    signedIn,
+    localDemoMode,
+    authRequiredForCloudSync: isSupabasePersistenceConfigured() && !signedIn,
     action,
     rowsAttempted,
     rowsSaved,
@@ -140,6 +208,8 @@ function createStorageResult({
     lastSaveErrorMessage: status.lastSaveErrorMessage,
     lastLoadTarget: status.lastLoadTarget,
     loadedRowCount: status.loadedRowCount,
+    signedIn: status.signedIn,
+    localDemoMode: status.localDemoMode,
   }
   logPersistenceStatus(status)
   return {
@@ -254,7 +324,7 @@ function journalTradeId(trade) {
   return createJournalTradeId(existingId || journalTradeSeed(trade))
 }
 
-function toJournalTradeRow(trade) {
+function toJournalTradeRow(trade, userId = null) {
   const side = normalizeSide(trade?.type ?? trade?.side)
   const setupTag = String(trade?.setup_tag ?? trade?.setupTag ?? '').trim()
   const mistakeTag = String(trade?.mistake_tag ?? trade?.mistakeTag ?? '').trim()
@@ -262,7 +332,7 @@ function toJournalTradeRow(trade) {
 
   return {
     id: journalTradeId(trade),
-    user_id: trade?.user_id ?? null,
+    user_id: userId ?? trade?.user_id ?? null,
     date: String(trade?.date || new Date().toISOString().slice(0, 10)),
     symbol: String(trade?.symbol || '').trim().toUpperCase(),
     side,
@@ -321,10 +391,25 @@ export async function loadJournalTradesFromStorage() {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    const localTrades = readLocalJournalTrades()
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'load journal_trades local demo',
+      loadedRowCount: localTrades.length,
+      trades: localTrades,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
     const { data, error } = await client
       .from('journal_trades')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -335,6 +420,8 @@ export async function loadJournalTradesFromStorage() {
       action: 'load journal_trades',
       loadedRowCount: trades.length,
       trades,
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     const localTrades = readLocalJournalTrades()
@@ -344,6 +431,8 @@ export async function loadJournalTradesFromStorage() {
       action: 'load journal_trades fallback',
       loadedRowCount: localTrades.length,
       trades: localTrades,
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
@@ -362,8 +451,23 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    const localSaved = writeStorage(STORAGE_KEYS.journal, safeTrades)
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action: 'save journal_trades local demo',
+      rowsAttempted: safeTrades.length,
+      rowsSaved: localSaved ? safeTrades.length : 0,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
-    const rows = safeTrades.map(toJournalTradeRow)
+    const rows = safeTrades.map((trade) => toJournalTradeRow(trade, userId))
     if (rows.length > 0) {
       const { error } = await client
         .from('journal_trades')
@@ -376,6 +480,8 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       action: 'save journal_trades',
       rowsAttempted: rows.length,
       rowsSaved: rows.length,
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     const localSaved = options.fallbackToLocal === false
@@ -388,6 +494,8 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       action: 'save journal_trades fallback',
       rowsAttempted: safeTrades.length,
       rowsSaved: localSaved ? safeTrades.length : 0,
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
@@ -403,11 +511,24 @@ export async function clearSupabaseJournalTrades() {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error: new Error('Sign in is required to clear Supabase journal data.'),
+      action: 'clear journal_trades local demo',
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
     const { count, error } = await client
       .from('journal_trades')
       .delete({ count: 'exact' })
-      .neq('id', '00000000-0000-0000-0000-000000000000')
+      .eq('user_id', userId)
     if (error) throw error
 
     return createStorageResult({
@@ -417,6 +538,8 @@ export async function clearSupabaseJournalTrades() {
       rowsSaved: count ?? 0,
       loadedRowCount: 0,
       trades: [],
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     return createStorageResult({
@@ -424,6 +547,8 @@ export async function clearSupabaseJournalTrades() {
       ok: false,
       error,
       action: 'clear journal_trades fallback',
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
@@ -439,17 +564,33 @@ export async function deleteJournalTradeFromStorage(id) {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'delete journal_trade local demo',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
     const { error } = await client
       .from('journal_trades')
       .delete()
       .eq('id', createJournalTradeId(id))
+      .eq('user_id', userId)
     if (error) throw error
     return createStorageResult({
       mode: STORAGE_MODES.supabase,
       action: 'delete journal_trade',
       rowsAttempted: 1,
       rowsSaved: 1,
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     return createStorageResult({
@@ -458,6 +599,8 @@ export async function deleteJournalTradeFromStorage(id) {
       error,
       action: 'delete journal_trade fallback',
       rowsAttempted: 1,
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
@@ -475,16 +618,32 @@ export async function saveTraderProfileToStorage(profile) {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action: 'save trader_profile local demo',
+      rowsAttempted: profile ? 1 : 0,
+      rowsSaved: localSaved && profile ? 1 : 0,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
     const { error } = await client
       .from('trader_profiles')
-      .insert({ user_id: null, profile })
+      .insert({ user_id: userId, profile })
     if (error) throw error
     return createStorageResult({
       mode: STORAGE_MODES.supabase,
       action: 'save trader_profile',
       rowsAttempted: 1,
       rowsSaved: 1,
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     return createStorageResult({
@@ -494,6 +653,8 @@ export async function saveTraderProfileToStorage(profile) {
       action: 'save trader_profile fallback',
       rowsAttempted: 1,
       rowsSaved: localSaved ? 1 : 0,
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
@@ -511,11 +672,25 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
     })
   }
 
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      action: 'save analysis_history local demo',
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      history: localHistory,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
   try {
     const prompt = String(entry?.question || entry?.type || 'journal_analysis')
     const { error } = await client
       .from('analysis_history')
-      .insert({ user_id: null, prompt, response: entry })
+      .insert({ user_id: userId, prompt, response: entry })
     if (error) throw error
     return createStorageResult({
       mode: STORAGE_MODES.supabase,
@@ -523,6 +698,8 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       rowsAttempted: 1,
       rowsSaved: 1,
       history: localHistory,
+      signedIn: true,
+      localDemoMode: false,
     })
   } catch (error) {
     return createStorageResult({
@@ -532,6 +709,8 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       rowsAttempted: 1,
       rowsSaved: 1,
       history: localHistory,
+      signedIn: true,
+      localDemoMode: true,
     })
   }
 }
