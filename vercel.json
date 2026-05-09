@@ -1,11 +1,15 @@
 {
-  "framework": "vite",
-  "buildCommand": "cd trading-ui && npm install && npm run build",
-  "outputDirectory": "trading-ui/dist",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{tests/**,trading-ui/**,node_modules/**,.venv/**,venv/**,backend/models/**,data/**,dev_data/**,output/**,rag_db/**,**/__pycache__/**,*.pyc}"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/index.py"
     }
   ]
 }
