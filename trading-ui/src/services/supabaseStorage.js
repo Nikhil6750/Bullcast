@@ -13,8 +13,18 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 let supabaseClient = null
 let lastStorageDiagnostic = null
 
+export function getSupabaseConfigStatus() {
+  const hasSupabaseUrl = Boolean(supabaseUrl)
+  const hasSupabaseAnonKey = Boolean(supabaseAnonKey)
+  return {
+    hasSupabaseUrl,
+    hasSupabaseAnonKey,
+    supabaseConfigured: hasSupabaseUrl && hasSupabaseAnonKey,
+  }
+}
+
 export function isSupabasePersistenceConfigured() {
-  return Boolean(supabaseUrl && supabaseAnonKey)
+  return getSupabaseConfigStatus().supabaseConfigured
 }
 
 export function getInitialStorageMode() {
@@ -26,10 +36,11 @@ export function formatStorageMode(mode) {
 }
 
 function baseDiagnostic() {
+  const status = getSupabaseConfigStatus()
   return {
-    supabaseConfigured: isSupabasePersistenceConfigured(),
-    hasUrl: Boolean(supabaseUrl),
-    hasAnonKey: Boolean(supabaseAnonKey),
+    ...status,
+    hasUrl: status.hasSupabaseUrl,
+    hasAnonKey: status.hasSupabaseAnonKey,
   }
 }
 

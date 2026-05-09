@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  getSupabaseConfigStatus,
   getCurrentSupabaseSession,
-  isSupabasePersistenceConfigured,
   onSupabaseAuthStateChange,
   signOutSupabase,
 } from "../services/supabaseStorage";
@@ -23,7 +23,8 @@ function StorageBadge({ mode }) {
 
 export default function AuthStatus() {
   const navigate = useNavigate();
-  const configured = isSupabasePersistenceConfigured();
+  const [configStatus] = useState(() => getSupabaseConfigStatus());
+  const configured = configStatus.supabaseConfigured;
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(!configured);
   const [busy, setBusy] = useState(false);

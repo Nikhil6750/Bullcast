@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  getSupabaseConfigStatus,
   getCurrentSupabaseSession,
-  isSupabasePersistenceConfigured,
   onSupabaseAuthStateChange,
   signInWithEmail,
   signUpWithEmail,
@@ -28,7 +28,8 @@ function friendlyAuthMessage(error) {
 
 export default function Login() {
   const navigate = useNavigate();
-  const configured = isSupabasePersistenceConfigured();
+  const [configStatus] = useState(() => getSupabaseConfigStatus());
+  const configured = configStatus.supabaseConfigured;
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -225,6 +226,11 @@ export default function Login() {
             {!configured ? (
               <div className="login-alert login-alert--error" role="status">
                 Supabase unavailable. Continue in local demo mode until frontend Supabase env vars are configured.
+                <div className="login-config-diagnostics">
+                  hasSupabaseUrl: {String(configStatus.hasSupabaseUrl)}
+                  {" | "}hasSupabaseAnonKey: {String(configStatus.hasSupabaseAnonKey)}
+                  {" | "}supabaseConfigured: {String(configStatus.supabaseConfigured)}
+                </div>
               </div>
             ) : null}
 

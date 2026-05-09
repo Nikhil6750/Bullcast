@@ -246,6 +246,14 @@
   color: var(--bc-muted);
 }
 
+.login-config-diagnostics {
+  margin-top: 0.55rem;
+  color: rgba(248, 113, 113, 0.78);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .login-primary-btn,
 .login-secondary-btn {
   width: 100%;
