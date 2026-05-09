@@ -19,6 +19,10 @@ The project combines a React frontend, a FastAPI backend, Supabase-backed journa
 - Deterministic intelligence modules in `backend/intelligence/` and canonical journal models in `backend/journal/`.
 - GitHub Actions CI runs backend tests and frontend production builds on `main`.
 
+## Engineering Decisions
+
+- [ADR 001: Deterministic Analysis Before LLM Summarization](docs/decisions/001-deterministic-before-llm.md)
+
 ## Current Status
 
 Implemented:
