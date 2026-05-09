@@ -1,5 +1,7 @@
 # Bullcast
 
+[![CI](https://github.com/Nikhil6750/Bullcast/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Nikhil6750/Bullcast/actions/workflows/ci.yml)
+
 Bullcast is a trading research and journal platform focused on rule-based trade intelligence and deterministic journal analytics. It uses journal retrieval and profile-aware coaching logic to convert market data and journal entries into structured educational decision-support.
 
 The project combines a React frontend, a Python backend, an offline OHLC pattern-conversion pipeline, journal analytics, backtesting, dataset readiness checks, and behavioral analytics. It is designed to demonstrate practical product engineering around trading-data workflows, not to provide trading instructions.
