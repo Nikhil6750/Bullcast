@@ -1,260 +1,308 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  getSupabaseConfigStatus,
   getCurrentSupabaseSession,
+  getSupabaseConfigStatus,
   onSupabaseAuthStateChange,
   signInWithEmail,
   signUpWithEmail,
 } from "../services/supabaseStorage";
 import "./Login.css";
 
-function friendlyAuthMessage(error) {
-  const message = String(error?.message || error || "").toLowerCase();
-
-  if (message.includes("invalid login")) return "Invalid login credentials.";
-  if (message.includes("email not confirmed")) {
-    return "Email not confirmed. Check your inbox and confirm your account.";
+function friendlyError(err) {
+  if (!err) return null;
+  const msg = (err.message || "").toLowerCase();
+  if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("wrong password")) {
+    return "Invalid email or password.";
   }
-  if (message.includes("password") && (message.includes("6") || message.includes("six"))) {
+  if (msg.includes("email not confirmed")) {
+    return "Email not confirmed yet. Please check your inbox.";
+  }
+  if (msg.includes("password") && msg.includes("6")) {
     return "Password must be at least 6 characters.";
   }
-  if (message.includes("supabase") || message.includes("fetch") || message.includes("network")) {
-    return "Supabase unavailable. Continue in local demo mode or try again shortly.";
+  if (msg.includes("already registered") || msg.includes("user already exists")) {
+    return "An account with this email already exists. Try signing in.";
   }
-
-  return "Authentication failed. Check your email and password, then try again.";
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed")) {
+    return "Supabase is unavailable. Try again later.";
+  }
+  return "Something went wrong. Please try again.";
 }
 
-export default function Login() {
+export default function Login({ user: userProp = null, onAuthChange }) {
   const navigate = useNavigate();
   const [configStatus] = useState(() => getSupabaseConfigStatus());
-  const configured = configStatus.supabaseConfigured;
+  const [sessionUser, setSessionUser] = useState(userProp);
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [session, setSession] = useState(null);
-  const [authReady, setAuthReady] = useState(!configured);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState("neutral");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
+  const configured = configStatus.supabaseConfigured;
+  const user = userProp || sessionUser;
   const isSignup = mode === "signup";
+
+  useEffect(() => {
+    setSessionUser(userProp);
+  }, [userProp]);
 
   useEffect(() => {
     if (!configured) return undefined;
 
     let active = true;
-    getCurrentSupabaseSession().then((currentSession) => {
+    getCurrentSupabaseSession().then((session) => {
       if (!active) return;
-      setSession(currentSession);
-      setAuthReady(true);
+      const nextUser = session?.user ?? null;
+      setSessionUser(nextUser);
+      if (nextUser && onAuthChange) onAuthChange(nextUser);
     });
 
-    const unsubscribe = onSupabaseAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthReady(true);
+    const unsubscribe = onSupabaseAuthStateChange((_event, session) => {
+      const nextUser = session?.user ?? null;
+      setSessionUser(nextUser);
+      if (onAuthChange) onAuthChange(nextUser);
     });
 
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [configured]);
+  }, [configured, onAuthChange]);
 
-  const resetFeedback = () => {
-    setMessage("");
-    setMessageTone("neutral");
-  };
-
-  const switchMode = (nextMode) => {
-    setMode(nextMode);
-    resetFeedback();
-  };
-
-  const continueLocal = () => {
-    navigate("/journal");
-  };
-
-  const submit = async (event) => {
-    event.preventDefault();
-    const trimmedEmail = email.trim();
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
 
     if (!configured) {
-      setMessage("Supabase unavailable. Continue in local demo mode or configure Supabase.");
-      setMessageTone("error");
+      setError(
+        configStatus.supabaseUrlIsRestEndpoint
+          ? "VITE_SUPABASE_URL must be the base Supabase project URL, not the REST API URL."
+          : "Supabase is unavailable. Try again later."
+      );
       return;
     }
 
-    if (!trimmedEmail || !password) {
-      setMessage("Email and password are required.");
-      setMessageTone("error");
+    if (!email.trim()) {
+      setError("Please enter your email.");
       return;
     }
-
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
     if (password.length < 6) {
-      setMessage("Password must be at least 6 characters.");
-      setMessageTone("error");
+      setError("Password must be at least 6 characters.");
       return;
     }
 
-    setBusy(true);
-    resetFeedback();
-
+    setLoading(true);
     try {
-      if (isSignup) {
-        await signUpWithEmail(trimmedEmail, password);
-        setPassword("");
-        setMessage("Account created. Check your email to confirm your account.");
-        setMessageTone("success");
-        return;
+      if (mode === "signin") {
+        const data = await signInWithEmail(email.trim(), password);
+        const nextUser = data?.user ?? data?.session?.user ?? null;
+        if (nextUser) {
+          setSessionUser(nextUser);
+          if (onAuthChange) onAuthChange(nextUser);
+        }
+        navigate("/journal");
+      } else {
+        await signUpWithEmail(email.trim(), password);
+        setSuccess("Account created. Check your email to confirm your account.");
       }
-
-      await signInWithEmail(trimmedEmail, password);
-      setPassword("");
-      navigate("/journal", { replace: true });
-    } catch (error) {
-      setMessage(friendlyAuthMessage(error));
-      setMessageTone("error");
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
-  };
+  }
 
-  if (session?.user) {
-    return (
-      <main className="login-root">
-        <section className="login-sidebar" aria-label="Bullcast">
-          <Link to="/" className="login-brand">
-            <span className="login-brand-mark">B</span>
-            <span>BULLCAST</span>
-          </Link>
-          <div className="login-copy">
-            <p className="login-kicker">Journal sync</p>
-            <h1>Signed in and ready to sync.</h1>
-            <p>Your journal can now load and save through Supabase under your account.</p>
-          </div>
-        </section>
-
-        <section className="login-main">
-          <div className="login-card login-card--signed-in">
-            <div className="login-status-dot" aria-hidden="true" />
-            <h2>Signed in</h2>
-            <p className="login-signed-email">{session.user.email}</p>
-            <button type="button" className="login-primary-btn" onClick={() => navigate("/journal")}>
-              Go to Journal
-            </button>
-          </div>
-        </section>
-      </main>
-    );
+  function handleLocalDemo() {
+    navigate("/journal");
   }
 
   return (
-    <main className="login-root">
-      <section className="login-sidebar" aria-label="Bullcast">
-        <Link to="/" className="login-brand">
-          <span className="login-brand-mark">B</span>
-          <span>BULLCAST</span>
-        </Link>
+    <div className="login-root">
+      <div className="login-bg" aria-hidden="true">
+        <div className="login-bg-grid" />
+        <div className="login-bg-glow" />
+      </div>
 
-        <div className="login-copy">
-          <p className="login-kicker">Trading journal</p>
-          <h1>Sign in to Bullcast</h1>
-          <p>Sync your journal securely with Supabase, or continue in local demo mode.</p>
+      <aside className="login-sidebar">
+        <div className="login-sidebar-inner">
+          <div className="login-logo">
+            <span className="login-logo-mark">◆</span>
+            <span className="login-logo-name">Bullcast</span>
+          </div>
+          <p className="login-tagline">
+            Trading journal intelligence<br />with secure cloud sync.
+          </p>
+          <ul className="login-features">
+            <li>
+              <span className="login-feature-dot" />
+              Import CSV &amp; XLSX trades
+            </li>
+            <li>
+              <span className="login-feature-dot" />
+              Backtesting &amp; analytics
+            </li>
+            <li>
+              <span className="login-feature-dot" />
+              Sentiment &amp; watchlists
+            </li>
+            <li>
+              <span className="login-feature-dot" />
+              Gemini-powered journal summaries
+            </li>
+          </ul>
+          <p className="login-disclaimer">
+            Prototype only. Not financial advice.
+          </p>
         </div>
+      </aside>
 
-        <div className="login-local-note">
-          Local demo data stays in this browser. Sign in to enable cloud sync.
-        </div>
-      </section>
-
-      <section className="login-main">
+      <div className="login-main">
         <div className="login-card">
-          <div className="login-card-header">
-            <p className="login-eyebrow">Supabase Auth</p>
-            <h2>{isSignup ? "Create account" : "Welcome back"}</h2>
-            <p>{isSignup ? "Create an account to sync journal data." : "Use your email and password to continue."}</p>
+          <div className="login-card-logo">
+            <span className="login-logo-mark">◆</span>
+            <span className="login-logo-name">Bullcast</span>
           </div>
 
-          <div className="login-tabs" role="tablist" aria-label="Auth mode">
-            <button
-              type="button"
-              className={!isSignup ? "login-tab login-tab--active" : "login-tab"}
-              onClick={() => switchMode("signin")}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              className={isSignup ? "login-tab login-tab--active" : "login-tab"}
-              onClick={() => switchMode("signup")}
-            >
-              Create account
-            </button>
-          </div>
-
-          <form className="login-form" onSubmit={submit}>
-            <label className="login-field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                placeholder="you@example.com"
-              />
-            </label>
-
-            <label className="login-field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete={isSignup ? "new-password" : "current-password"}
-                placeholder="Password"
-              />
-            </label>
-
-            {message ? (
-              <div className={`login-alert login-alert--${messageTone}`} role="status">
-                {message}
+          {user ? (
+            <div className="login-signedin">
+              <p className="login-signedin-label">Signed in as</p>
+              <p className="login-signedin-email">{user.email}</p>
+              <div className="login-storage-badge">
+                <span className="badge-dot badge-dot--green" />
+                Storage: Supabase
               </div>
-            ) : null}
+              <button className="btn-primary" onClick={() => navigate("/journal")}>
+                Go to Journal
+              </button>
+            </div>
+          ) : (
+            <>
+              <h1 className="login-card-title">
+                {isSignup ? "Create your account" : "Sign in to Bullcast"}
+              </h1>
+              <p className="login-card-subtitle">
+                {isSignup
+                  ? "Save and sync your journal securely with Supabase."
+                  : "Sync your journal securely with Supabase."}
+              </p>
 
-            {!configured ? (
-              <div className="login-alert login-alert--error" role="status">
-                {configStatus.supabaseUrlIsRestEndpoint
-                  ? "VITE_SUPABASE_URL must be the base Supabase project URL, not the REST API URL."
-                  : "Supabase unavailable. Continue in local demo mode until frontend Supabase env vars are configured."}
-                <div className="login-config-diagnostics">
-                  hasSupabaseUrl: {String(configStatus.hasSupabaseUrl)}
-                  {" | "}hasSupabaseAnonKey: {String(configStatus.hasSupabaseAnonKey)}
-                  {" | "}supabaseConfigured: {String(configStatus.supabaseConfigured)}
-                  {" | "}mode: {configStatus.mode}
-                  {" | "}prod: {String(configStatus.prod)}
+              <div className="login-tabs" role="tablist">
+                <button
+                  role="tab"
+                  aria-selected={!isSignup}
+                  className={`login-tab${!isSignup ? " login-tab--active" : ""}`}
+                  onClick={() => { setMode("signin"); setError(null); setSuccess(null); }}
+                >
+                  Sign in
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={isSignup}
+                  className={`login-tab${isSignup ? " login-tab--active" : ""}`}
+                  onClick={() => { setMode("signup"); setError(null); setSuccess(null); }}
+                >
+                  Create account
+                </button>
+              </div>
+
+              {success && (
+                <div className="login-alert login-alert--success" role="status">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M13.5 4.5L6.5 11.5L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {success}
                 </div>
+              )}
+
+              {error && (
+                <div className="login-alert login-alert--error" role="alert">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <form className="login-form" onSubmit={handleSubmit} noValidate>
+                <div className="form-field">
+                  <label htmlFor="email" className="form-label">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-input"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    autoComplete="email"
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="password" className="form-label">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    className="form-input"
+                    placeholder={isSignup ? "Min. 6 characters" : "••••••••"}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete={isSignup ? "new-password" : "current-password"}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading
+                    ? (isSignup ? "Creating account…" : "Signing in…")
+                    : (isSignup ? "Create account" : "Sign in")}
+                </button>
+              </form>
+
+              <div className="login-divider">
+                <span>or</span>
               </div>
-            ) : null}
 
-            <button type="submit" className="login-primary-btn" disabled={busy || !authReady}>
-              {busy ? "Working..." : isSignup ? "Create account" : "Sign in"}
-            </button>
+              <button className="btn-ghost" onClick={handleLocalDemo} disabled={loading}>
+                Continue in local demo mode
+              </button>
 
-            <button type="button" className="login-secondary-btn" onClick={continueLocal} disabled={busy}>
-              Continue in local demo mode
-            </button>
-          </form>
-
-          <div className="login-footer-toggle">
-            {isSignup ? "Already have an account?" : "New here?"}{" "}
-            <button type="button" onClick={() => switchMode(isSignup ? "signin" : "signup")}>
-              {isSignup ? "Sign in" : "Create account"}
-            </button>
-          </div>
+              <p className="login-footer-toggle">
+                {isSignup ? (
+                  <>Already have an account?{" "}
+                    <button
+                      className="link-btn"
+                      onClick={() => { setMode("signin"); setError(null); setSuccess(null); }}
+                    >Sign in</button>
+                  </>
+                ) : (
+                  <>New here?{" "}
+                    <button
+                      className="link-btn"
+                      onClick={() => { setMode("signup"); setError(null); setSuccess(null); }}
+                    >Create account</button>
+                  </>
+                )}
+              </p>
+            </>
+          )}
         </div>
-      </section>
-    </main>
+
+        <p className="login-legal">
+          Prototype only · Not financial advice · No broker integration
+        </p>
+      </div>
+    </div>
   );
 }

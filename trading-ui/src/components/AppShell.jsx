@@ -1,50 +1,46 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import AuthStatus from "./AuthStatus";
 import "./AppShell.css";
 
 const NAV_LINKS = [
-  { to: "/sentiment", label: "Sentiment" },
-  { to: "/watchlist", label: "Watchlist" },
-  { to: "/backtest", label: "Backtest" },
-  { to: "/journal", label: "Journal" },
-  { to: "/intelligence", label: "Intelligence" },
+  { path: "/sentiment", label: "Sentiment" },
+  { path: "/watchlist", label: "Watchlist" },
+  { path: "/backtest", label: "Backtest" },
+  { path: "/journal", label: "Journal" },
+  { path: "/intelligence", label: "Intelligence" },
 ];
 
-export default function AppShell() {
+export default function AppShell({ children, user, onSignOut }) {
+  const location = useLocation();
+
   return (
     <div className="app-shell">
-      <div className="app-grid-layer" aria-hidden="true" />
       <header className="app-header">
         <div className="header-inner">
           <Link to="/" className="brand" aria-label="Bullcast home">
-            <span className="brand-mark">B</span>
-            <span className="brand-name">
-              BULLCAST<span className="brand-dot">.</span>
-            </span>
+            <span className="brand-mark" aria-hidden="true">◆</span>
+            <span className="brand-name">Bullcast</span>
           </Link>
 
-          <nav className="main-nav" aria-label="Primary navigation">
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) => (
-                  isActive ? "nav-link nav-link--active" : "nav-link"
-                )}
+          <nav className="main-nav" aria-label="Main navigation">
+            {NAV_LINKS.map(({ path, label }) => (
+              <Link
+                key={path}
+                to={path}
+                className={`nav-link${location.pathname.startsWith(path) ? " nav-link--active" : ""}`}
+                aria-current={location.pathname.startsWith(path) ? "page" : undefined}
               >
-                {link.label}
-              </NavLink>
+                {label}
+              </Link>
             ))}
           </nav>
 
-          <AuthStatus />
+          <AuthStatus user={user} onSignOut={onSignOut} />
         </div>
       </header>
 
-      <div className="app-disclaimer">Prototype only. Not financial advice.</div>
-
       <main className="app-main">
-        <Outlet />
+        {children}
       </main>
     </div>
   );

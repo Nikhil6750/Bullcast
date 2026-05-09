@@ -1,85 +1,71 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getSupabaseConfigStatus,
   getCurrentSupabaseSession,
+  getSupabaseConfigStatus,
   onSupabaseAuthStateChange,
   signOutSupabase,
 } from "../services/supabaseStorage";
 import "./AuthStatus.css";
 
-function StorageBadge({ mode }) {
-  const isSynced = mode === "supabase";
-
-  return (
-    <span
-      className={`auth-storage-badge ${isSynced ? "auth-storage-badge--synced" : "auth-storage-badge--local"}`}
-    >
-      <span className={`auth-dot ${isSynced ? "auth-dot--green" : "auth-dot--amber"}`} />
-      {isSynced ? "Storage: Supabase" : "Local demo mode"}
-    </span>
-  );
-}
-
-export default function AuthStatus() {
+export default function AuthStatus({ user: userProp = null, onSignOut }) {
   const navigate = useNavigate();
   const [configStatus] = useState(() => getSupabaseConfigStatus());
-  const configured = configStatus.supabaseConfigured;
-  const [session, setSession] = useState(null);
-  const [authReady, setAuthReady] = useState(!configured);
-  const [busy, setBusy] = useState(false);
+  const [sessionUser, setSessionUser] = useState(userProp);
+  const [signingOut, setSigningOut] = useState(false);
+  const user = userProp || sessionUser;
 
   useEffect(() => {
-    if (!configured) return undefined;
+    setSessionUser(userProp);
+  }, [userProp]);
+
+  useEffect(() => {
+    if (!configStatus.supabaseConfigured) return undefined;
 
     let active = true;
-    getCurrentSupabaseSession().then((currentSession) => {
+    getCurrentSupabaseSession().then((session) => {
       if (!active) return;
-      setSession(currentSession);
-      setAuthReady(true);
+      setSessionUser(session?.user ?? null);
     });
 
-    const unsubscribe = onSupabaseAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthReady(true);
+    const unsubscribe = onSupabaseAuthStateChange((_event, session) => {
+      setSessionUser(session?.user ?? null);
     });
 
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [configured]);
+  }, [configStatus.supabaseConfigured]);
 
-  const handleSignOut = async () => {
-    setBusy(true);
+  async function handleSignOut() {
+    setSigningOut(true);
     try {
-      await signOutSupabase();
-      setSession(null);
+      if (onSignOut) {
+        await onSignOut();
+      } else {
+        await signOutSupabase();
+      }
+      setSessionUser(null);
     } finally {
-      setBusy(false);
+      setSigningOut(false);
     }
-  };
-
-  if (!authReady) {
-    return (
-      <div className="auth-status" aria-live="polite">
-        <StorageBadge mode="local" />
-      </div>
-    );
   }
 
-  if (session?.user) {
+  if (user) {
     return (
       <div className="auth-status">
-        <StorageBadge mode="supabase" />
-        <span className="auth-email" title={session.user.email || ""}>
-          {session.user.email || "Signed in"}
+        <div className="auth-storage-badge auth-storage-badge--synced">
+          <span className="auth-dot auth-dot--green" />
+          Storage: Supabase
+        </div>
+        <span className="auth-email" title={user.email}>
+          {user.email}
         </span>
         <button
-          type="button"
           className="auth-btn auth-btn--signout"
           onClick={handleSignOut}
-          disabled={busy}
+          disabled={signingOut}
         >
           Sign out
         </button>
@@ -89,9 +75,11 @@ export default function AuthStatus() {
 
   return (
     <div className="auth-status">
-      <StorageBadge mode="local" />
+      <div className="auth-storage-badge auth-storage-badge--local">
+        <span className="auth-dot auth-dot--amber" />
+        Local demo mode
+      </div>
       <button
-        type="button"
         className="auth-btn auth-btn--signin"
         onClick={() => navigate("/login")}
       >
