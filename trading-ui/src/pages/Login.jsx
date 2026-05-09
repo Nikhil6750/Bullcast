@@ -7,6 +7,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
 } from "../services/supabaseStorage";
+import { enterLocalDemoMode } from "../services/entryState";
 import "./Login.css";
 
 function friendlyError(err) {
@@ -121,6 +122,7 @@ export default function Login({ user: userProp = null, onAuthChange }) {
   }
 
   function handleLocalDemo() {
+    enterLocalDemoMode();
     navigate("/journal");
   }
 

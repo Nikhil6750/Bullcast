@@ -6,6 +6,7 @@ import {
   onSupabaseAuthStateChange,
   signOutSupabase,
 } from "../services/supabaseStorage";
+import { clearLocalDemoMode } from "../services/entryState";
 import "./AuthStatus.css";
 
 export default function AuthStatus({ user: userProp = null, onSignOut }) {
@@ -46,7 +47,9 @@ export default function AuthStatus({ user: userProp = null, onSignOut }) {
       } else {
         await signOutSupabase();
       }
+      clearLocalDemoMode();
       setSessionUser(null);
+      navigate("/login");
     } finally {
       setSigningOut(false);
     }
