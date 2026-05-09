@@ -1,36 +1,37 @@
 import { useEffect, useState } from "react";
-import AuthModal from "./AuthModal";
+import { useNavigate } from "react-router-dom";
 import {
   getCurrentSupabaseSession,
   isSupabasePersistenceConfigured,
   onSupabaseAuthStateChange,
   signOutSupabase,
 } from "../services/supabaseStorage";
+import "./AuthStatus.css";
 
-function AuthBadge({ tone = "local", children }) {
-  const colors = tone === "supabase"
-    ? "border-green-400/25 bg-green-400/10 text-green-300"
-    : "border-amber-300/25 bg-amber-300/10 text-amber-300";
+function StorageBadge({ mode }) {
+  const isSynced = mode === "supabase";
 
   return (
-    <span className={`whitespace-nowrap rounded border px-2.5 py-1 font-mono text-[0.62rem] uppercase tracking-wider ${colors}`}>
-      {children}
+    <span
+      className={`auth-storage-badge ${isSynced ? "auth-storage-badge--synced" : "auth-storage-badge--local"}`}
+    >
+      <span className={`auth-dot ${isSynced ? "auth-dot--green" : "auth-dot--amber"}`} />
+      {isSynced ? "Storage: Supabase" : "Local demo mode"}
     </span>
   );
 }
 
 export default function AuthStatus() {
+  const navigate = useNavigate();
   const configured = isSupabasePersistenceConfigured();
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(!configured);
-  const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!configured) return undefined;
-    let active = true;
 
+    let active = true;
     getCurrentSupabaseSession().then((currentSession) => {
       if (!active) return;
       setSession(currentSession);
@@ -40,8 +41,6 @@ export default function AuthStatus() {
     const unsubscribe = onSupabaseAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setAuthReady(true);
-      setMessage("");
-      if (nextSession?.user) setModalOpen(false);
     });
 
     return () => {
@@ -50,75 +49,53 @@ export default function AuthStatus() {
     };
   }, [configured]);
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     setBusy(true);
-    setMessage("");
     try {
       await signOutSupabase();
-    } catch {
-      setMessage("Supabase unavailable. You can keep using local demo mode.");
+      setSession(null);
     } finally {
       setBusy(false);
     }
   };
 
-  if (!configured) {
-    return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <AuthBadge>Local demo mode</AuthBadge>
-        <span className="font-mono text-[0.58rem] uppercase tracking-wider text-neutral">
-          Supabase env missing
-        </span>
-      </div>
-    );
-  }
-
   if (!authReady) {
     return (
-      <div className="font-mono text-[0.62rem] uppercase tracking-wider text-neutral">
-        Checking auth...
+      <div className="auth-status" aria-live="polite">
+        <StorageBadge mode="local" />
       </div>
     );
   }
 
   if (session?.user) {
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2 font-mono">
-        <AuthBadge tone="supabase">Storage: Supabase</AuthBadge>
-        <span
-          className="max-w-[190px] truncate rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[0.68rem] lowercase text-neutral"
-          title={session.user.email || ""}
-        >
-          {session.user.email}
+      <div className="auth-status">
+        <StorageBadge mode="supabase" />
+        <span className="auth-email" title={session.user.email || ""}>
+          {session.user.email || "Signed in"}
         </span>
         <button
           type="button"
-          onClick={signOut}
+          className="auth-btn auth-btn--signout"
+          onClick={handleSignOut}
           disabled={busy}
-          className="whitespace-nowrap rounded border border-primary/20 px-3 py-1.5 text-[0.62rem] uppercase tracking-wider text-primary transition-colors hover:border-primary/50 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Sign out
         </button>
-        {message ? (
-          <span className="basis-full text-right text-[0.58rem] normal-case tracking-normal text-amber-300">
-            {message}
-          </span>
-        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <AuthBadge>Local demo mode</AuthBadge>
+    <div className="auth-status">
+      <StorageBadge mode="local" />
       <button
         type="button"
-        onClick={() => setModalOpen(true)}
-        className="whitespace-nowrap rounded bg-primary px-3.5 py-1.5 font-mono text-[0.62rem] font-bold uppercase tracking-wider text-background transition hover:bg-primary/90"
+        className="auth-btn auth-btn--signin"
+        onClick={() => navigate("/login")}
       >
         Sign in
       </button>
-      {modalOpen ? <AuthModal onClose={() => setModalOpen(false)} /> : null}
     </div>
   );
 }

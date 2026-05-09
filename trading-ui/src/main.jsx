@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
+import "./global.css";
 import "./index.css";
 
 const StrategyBuilder = lazy(() => import("./pages/StrategyBuilder"));
@@ -12,6 +13,7 @@ const Sentiment = lazy(() => import("./pages/Sentiment"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Intelligence = lazy(() => import("./pages/Intelligence"));
+const Login = lazy(() => import("./pages/Login"));
 
 const RouteNotFound = () => (
   <div className="p-6 text-white">
@@ -26,6 +28,7 @@ createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Suspense fallback={<Fallback />}><Login /></Suspense>} />
         <Route path="/" element={<App />}>
           <Route index element={<Suspense fallback={<Fallback />}><Home /></Suspense>} />
           <Route path="sentiment" element={<Suspense fallback={<Fallback />}><Sentiment /></Suspense>} />

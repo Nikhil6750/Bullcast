@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { exportTradeDataset } from "../services/api";
+import StorageStatus from "../components/StorageStatus";
 import { STORAGE_KEYS, readStorage } from "../services/storage";
 import {
   clearLocalJournalStorage,
@@ -780,11 +782,13 @@ function RecommendedLabel({ children }) {
 
 // --- Main Journal Page ---
 export default function Journal() {
+  const navigate = useNavigate();
   const initialJournalRef = useRef(null);
   if (!initialJournalRef.current) initialJournalRef.current = getInitialJournalState();
 
   const [trades, setTrades] = useState(() => initialJournalRef.current.trades);
   const [storageMode, setStorageMode] = useState(() => getInitialStorageMode());
+  const [authEmail, setAuthEmail] = useState(null);
   const [storageStatus, setStorageStatus] = useState(() => getInitialStorageStatus({
     lastLoadTarget: "local",
     loadedRowCount: initialJournalRef.current.localRowCount,
@@ -820,6 +824,7 @@ export default function Journal() {
     const hydrateJournal = async (session) => {
       const runId = hydrateRun + 1;
       hydrateRun = runId;
+      setAuthEmail(session?.user?.email || null);
       setLoadingJournal(true);
       const localRows = readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
 
@@ -1234,6 +1239,11 @@ export default function Journal() {
     const pnl = Number(t.pnl);
     return s + (Number.isFinite(pnl) ? pnl : 0);
   }, 0);
+  const storageDisplayMode = storageMode === "supabase"
+    ? "supabase"
+    : storageStatus?.signedIn === true && storageStatus?.lastSaveErrorMessage
+      ? "fallback"
+      : "local";
 
   return (
     <div style={{ minHeight: "100%", padding: "24px", maxWidth: 1280, margin: "0 auto" }}>
@@ -1244,12 +1254,28 @@ export default function Journal() {
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.7rem", color: "#C8F135", letterSpacing: "0.16em", textTransform: "uppercase" }}>
               Personal
             </div>
-            <StorageModeIndicator mode={storageMode} status={storageStatus} />
+            <StorageStatus
+              mode={storageDisplayMode}
+              email={authEmail}
+              onSignIn={storageStatus?.supabaseConfigured === true && storageDisplayMode === "local" ? () => navigate("/login") : undefined}
+            />
           </div>
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2rem,5vw,3.5rem)", color: "#e5e5e5", margin: 0, letterSpacing: "0.04em", lineHeight: 1 }}>
             Trade Journal
           </h1>
-          <StorageDebugStatus status={storageStatus} />
+          <details style={{ marginTop: 6 }}>
+            <summary style={{
+              cursor: "pointer",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.62rem",
+              color: "#888899",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}>
+              Storage details
+            </summary>
+            <StorageDebugStatus status={storageStatus} />
+          </details>
           {storageMode !== "supabase" && storageStatus?.supabaseConfigured === true && (
             <div style={{
               marginTop: 6,
@@ -1691,28 +1717,6 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
         </div>
       )}
     </div>
-  );
-}
-
-function StorageModeIndicator({ mode, status }) {
-  const isSupabase = mode === "supabase";
-  const label = isSupabase ? "Supabase" : "Local demo mode";
-  const title = `supabaseConfigured: ${status?.supabaseConfigured === true}; signedIn: ${status?.signedIn === true}; lastLoadTarget: ${status?.lastLoadTarget || "null"}; lastSaveTarget: ${status?.lastSaveTarget || "null"}; lastSaveError: ${status?.lastSaveErrorMessage || "null"}`;
-  return (
-    <span style={{
-      padding: "3px 7px",
-      borderRadius: 3,
-      border: `1px solid ${isSupabase ? "rgba(0,255,135,0.2)" : "rgba(255,184,77,0.2)"}`,
-      background: isSupabase ? "rgba(0,255,135,0.06)" : "rgba(255,184,77,0.06)",
-      color: isSupabase ? "#00FF87" : "#FFB84D",
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: "0.58rem",
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
-      lineHeight: 1.3,
-    }} title={title}>
-      {isSupabase ? `Storage: ${label}` : label}
-    </span>
   );
 }
 
