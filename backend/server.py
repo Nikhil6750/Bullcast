@@ -8,7 +8,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Final, List
+from typing import Any, Final, List
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -119,8 +119,9 @@ async def run_strategy(
 
 from backend.market_data import search_symbols, list_assets, fetch_ohlcv, fetch_quote
 from backend.backtesting import run_backtest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.intelligence.mistake_summary import build_mistake_summary
+from backend.intelligence.journal_summary import build_journal_summary
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -148,6 +149,31 @@ class TradeAnalysisRequest(BaseModel):
 class MistakeSummaryRequest(BaseModel):
     trades: List[TradeEntry] = Field(default_factory=list)
     limit: int = Field(default=100, ge=1, le=500)
+
+class JournalSummaryRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    trades: List[TradeEntry] = Field(default_factory=list)
+    profile_summary: dict[str, Any] | None = None
+    limit: int = Field(default=100, ge=1, le=500)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        if "trades" not in data:
+            for key in ("recent_trades", "recent_journal_trades", "journal_trades"):
+                if key in data:
+                    data["trades"] = data.get(key)
+                    break
+        if "profile_summary" not in data:
+            for key in ("profile", "trader_profile"):
+                if key in data:
+                    data["profile_summary"] = data.get(key)
+                    break
+        return data
 
 class TradeDatasetExportRequest(BaseModel):
     trades: List[dict] = Field(default_factory=list)
@@ -274,6 +300,27 @@ async def intelligence_mistake_summary(req: MistakeSummaryRequest):
         raise HTTPException(
             status_code=500,
             detail="Mistake summary failed. Please try again."
+        )
+
+
+@app.post("/api/intelligence/journal-summary")
+async def intelligence_journal_summary(req: JournalSummaryRequest):
+    """
+    Return deterministic journal analytics first, with optional Gemini summarization.
+    Gemini is server-side only and falls back safely when GEMINI_API_KEY is absent.
+    """
+    try:
+        trades_dicts = [t.model_dump() for t in req.trades]
+        return build_journal_summary(
+            trades_dicts,
+            profile_summary=req.profile_summary,
+            limit=req.limit,
+        )
+    except Exception as e:
+        logger.error(f"Journal summary error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Journal summary failed. Please try again."
         )
 
 

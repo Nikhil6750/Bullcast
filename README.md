@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Nikhil6750/Bullcast/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Nikhil6750/Bullcast/actions/workflows/ci.yml)
 
-Bullcast is a trading research and journal platform focused on rule-based trade intelligence and deterministic journal analytics. It uses journal retrieval and profile-aware coaching logic to convert market data and journal entries into structured educational decision-support.
+Bullcast is a trading research and journal platform focused on rule-based trade intelligence + optional Gemini-powered journal summarization. Deterministic journal analytics remain the source of truth, with Gemini used only for educational summaries when configured server-side.
 
 The project combines a React frontend, a Python backend, an offline OHLC pattern-conversion pipeline, journal analytics, backtesting, dataset readiness checks, and behavioral analytics. It is designed to demonstrate practical product engineering around trading-data workflows, not to provide trading instructions.
 
@@ -26,7 +26,7 @@ All analysis is educational decision-support based on supplied journal data and 
 - Supabase journal persistence is implemented for journal trades, analysis history, and trader profiles when configured.
 - Browser `localStorage` fallback exists when Supabase environment variables are missing or Supabase requests fail.
 - Supabase Auth and user-scoped RLS are still pending and must be completed before storing real user data.
-- LLM/RAG/ML features are planned or in progress, not completed production capabilities. The current reliable baseline is rule-based trade intelligence and deterministic journal analytics.
+- The intelligence layer is honestly hybrid: rule-based trade intelligence and deterministic journal analytics first, optional Gemini-powered journal summarization second when `GEMINI_API_KEY` is configured on the backend.
 
 ## Key Features
 
@@ -39,6 +39,7 @@ All analysis is educational decision-support based on supplied journal data and 
 - Symbol-aware historical matching.
 - Heuristic, profile-driven risk and confidence scoring.
 - Repeated mistake detection.
+- Optional Gemini-powered journal summarization for educational review.
 - Backtesting metrics for historical strategy simulations.
 - Supabase-backed journal persistence with local browser fallback.
 - Dataset readiness checks for planned ML/data quality review.
@@ -154,10 +155,10 @@ It supports:
 - Heuristic, profile-driven risk scoring.
 - Heuristic, profile-driven confidence scoring.
 - Journal-history retrieval and matching before sparse sentiment fallback.
-- Planned LLM/RAG/ML extension points that are not production-complete.
+- Optional Gemini-powered journal summarization that uses deterministic analytics as source-of-truth input.
 - Simulated-data disclaimers when generated rows are used.
 
-The engine is deterministic and journal-grounded. It does not predict market direction, expected profit, or trade outcome. It explains how a proposed future trade compares to historical journal patterns.
+The engine is deterministic and journal-grounded first. Gemini summaries are optional, backend-only, and constrained to educational journal review. Bullcast does not predict market direction, expected profit, or trade outcome. It explains how a proposed future trade compares to historical journal patterns.
 
 Example behaviors:
 
@@ -239,7 +240,7 @@ TODO: Bullcast currently has no login/account system. The temporary Supabase RLS
 
 - Frontend: deployed on Vercel at https://bullcast-ruddy.vercel.app
 - Backend: https://bullcast-api.vercel.app
-- LLM/RAG/ML features are planned or in progress. Any server-side model experiments must keep API keys out of the React frontend and preserve deterministic fallbacks when not configured.
+- Optional Gemini-powered journal summarization runs server-side only when `GEMINI_API_KEY` is configured. Gemini keys are not exposed to the React frontend, and deterministic fallbacks are returned when unavailable.
 
 ## Project Structure
 
@@ -374,7 +375,7 @@ This example is based on generated simulated training rows. The numbers are desc
 - Current Supabase policies are dev-only anon policies until Supabase Auth and user-scoped RLS are added.
 - Backtesting depends on historical data quality and assumptions.
 - Trader intelligence outputs are educational and journal-grounded, not predictive.
-- LLM/RAG/ML features are planned or in progress, not completed production capabilities.
+- Gemini summarization is optional and depends on backend `GEMINI_API_KEY`; deterministic journal analytics still work without it.
 - The system is not production financial infrastructure.
 
 ## Future Improvements
@@ -382,7 +383,7 @@ This example is based on generated simulated training rows. The numbers are desc
 - Real paper-trade journal collection workflows.
 - User authentication and account-level journals.
 - Production Supabase RLS scoped by authenticated user.
-- Planned LLM/RAG/ML extensions with clear fallback behavior and evaluation gates.
+- Broader LLM/RAG/ML extensions with clear fallback behavior and evaluation gates.
 - Improved training-report workflows with stronger validation and governance.
 - Better visual analytics for setup history and behavior patterns.
 - Deployment-ready configuration.

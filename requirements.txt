@@ -11,3 +11,4 @@ requests==2.31.0
 vaderSentiment
 yfinance
 anthropic==0.25.0
+google-genai>=1.0.0
