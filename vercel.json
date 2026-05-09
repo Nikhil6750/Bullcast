@@ -1,8 +1,11 @@
 {
+  "framework": "vite",
+  "buildCommand": "cd trading-ui && npm install && npm run build",
+  "outputDirectory": "trading-ui/dist",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index"
+      "destination": "/index.html"
     }
   ]
 }
