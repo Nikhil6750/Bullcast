@@ -200,6 +200,7 @@ function normalizeTrade(trade, index = null) {
 
   const normalized = {
     id: String(trade?.id || `${symbol || "TRADE"}-${trade?.date || Date.now()}-${index ?? Date.now()}`),
+    user_id: trade?.user_id ?? null,
     date: String(trade?.date || new Date().toISOString().split("T")[0]),
     symbol,
     asset_type: assetType,
@@ -932,6 +933,16 @@ export default function Journal() {
       if (!active) return;
       setStorageMode(result.mode);
       setStorageStatus(result);
+      if (result.mode === "supabase" && Array.isArray(result.trades) && result.trades.length === trades.length) {
+        const savedTrades = result.trades.map((trade, index) => normalizeTrade(trade, index));
+        const idsChanged = savedTrades.some((trade, index) => (
+          trade.id !== trades[index]?.id || trade.user_id !== trades[index]?.user_id
+        ));
+        if (idsChanged) {
+          suppressNextSaveRef.current = true;
+          setTrades(savedTrades);
+        }
+      }
     });
 
     return () => { active = false; };
@@ -1722,9 +1733,24 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
 
 function StorageDebugStatus({ status }) {
   if (!status) return null;
+  const items = [
+    ["isAuthenticated", String(status.isAuthenticated === true || status.signedIn === true)],
+    ["userId present", String(status.userIdPresent === true)],
+    ["storageMode", status.storageMode || status.mode || "local"],
+    ["lastSaveTarget", status.lastSaveTarget || "null"],
+    ["lastSaveAction", status.lastSaveAction || "null"],
+    ["lastSaveErrorMessage", status.lastSaveErrorMessage || "null"],
+    ["lastInsertedRowCount", status.lastInsertedRowCount ?? status.returnedRowCount ?? 0],
+    ["returnedRowCount", status.returnedRowCount ?? 0],
+    ["supabaseConfigured", String(status.supabaseConfigured === true)],
+  ];
+
   return (
     <div style={{
       marginTop: 6,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+      gap: 6,
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: "0.58rem",
       color: status.lastSaveErrorMessage ? "#FFB84D" : "#555566",
@@ -1732,12 +1758,17 @@ function StorageDebugStatus({ status }) {
       letterSpacing: "0.04em",
       textTransform: "uppercase",
     }}>
-      supabaseConfigured: {String(status.supabaseConfigured === true)}
-      {" | "}signedIn: {String(status.signedIn === true)}
-      {" | "}lastLoadTarget: {status.lastLoadTarget || "null"}
-      {" | "}lastSaveTarget: {status.lastSaveTarget || "null"}
-      {" | "}loadedRowCount: {status.loadedRowCount ?? 0}
-      {" | "}lastSaveErrorMessage: {status.lastSaveErrorMessage || "null"}
+      {items.map(([label, value]) => (
+        <div key={label} style={{
+          border: "1px solid rgba(200,241,53,0.08)",
+          borderRadius: 4,
+          padding: "6px 8px",
+          background: "rgba(255,255,255,0.015)",
+        }}>
+          <span style={{ color: "#888899" }}>{label}: </span>
+          <span style={{ color: status.lastSaveErrorMessage ? "#FFB84D" : "#C8F135" }}>{value}</span>
+        </div>
+      ))}
     </div>
   );
 }
