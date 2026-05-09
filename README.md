@@ -106,6 +106,22 @@ Notes:
 - Supabase service-role keys must never be committed or exposed to the browser.
 - If Supabase variables are missing or the user is signed out, Bullcast keeps using browser `localStorage`.
 
+Supabase Auth redirect setup:
+
+In the Supabase dashboard, go to **Authentication -> URL Configuration** and set:
+
+```text
+Site URL:
+https://bullcast-ruddy.vercel.app
+
+Redirect URLs:
+https://bullcast-ruddy.vercel.app/**
+http://localhost:3000/**
+http://localhost:5173/**
+```
+
+The frontend also passes `emailRedirectTo: window.location.origin` during sign-up, so production confirmation links resolve to `https://bullcast-ruddy.vercel.app` and local development resolves to the current local origin. If Supabase URL Configuration still points at `localhost:3000`, confirmation emails can send users to a localhost callback instead of the live app.
+
 ## Testing
 
 Run backend tests:

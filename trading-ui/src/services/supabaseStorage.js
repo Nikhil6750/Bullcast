@@ -114,10 +114,20 @@ export function onSupabaseAuthStateChange(callback) {
   return () => data?.subscription?.unsubscribe?.()
 }
 
+export function getSupabaseAuthRedirectUrl() {
+  if (typeof window === 'undefined' || !window.location?.origin) return undefined
+  return window.location.origin
+}
+
 export async function signUpWithEmail(email, password) {
   const client = getSupabaseClient()
   if (!client) throw new Error('Supabase is not configured.')
-  const { data, error } = await client.auth.signUp({ email, password })
+  const emailRedirectTo = getSupabaseAuthRedirectUrl()
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
+  })
   if (error) throw error
   return data
 }
