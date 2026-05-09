@@ -225,11 +225,15 @@ export default function Login() {
 
             {!configured ? (
               <div className="login-alert login-alert--error" role="status">
-                Supabase unavailable. Continue in local demo mode until frontend Supabase env vars are configured.
+                {configStatus.supabaseUrlIsRestEndpoint
+                  ? "VITE_SUPABASE_URL must be the base Supabase project URL, not the REST API URL."
+                  : "Supabase unavailable. Continue in local demo mode until frontend Supabase env vars are configured."}
                 <div className="login-config-diagnostics">
                   hasSupabaseUrl: {String(configStatus.hasSupabaseUrl)}
                   {" | "}hasSupabaseAnonKey: {String(configStatus.hasSupabaseAnonKey)}
                   {" | "}supabaseConfigured: {String(configStatus.supabaseConfigured)}
+                  {" | "}mode: {configStatus.mode}
+                  {" | "}prod: {String(configStatus.prod)}
                 </div>
               </div>
             ) : null}

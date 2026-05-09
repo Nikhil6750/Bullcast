@@ -8,18 +8,32 @@ export const STORAGE_MODES = {
 
 const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim()
 const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
+const supabaseProjectUrl = supabaseUrl.replace(/\/+$/, '')
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 let supabaseClient = null
 let lastStorageDiagnostic = null
 
+function isRestApiSupabaseUrl(value) {
+  if (!value) return false
+  try {
+    return new URL(value).pathname.toLowerCase().includes('/rest/v1')
+  } catch {
+    return String(value).toLowerCase().includes('/rest/v1')
+  }
+}
+
 export function getSupabaseConfigStatus() {
   const hasSupabaseUrl = Boolean(supabaseUrl)
   const hasSupabaseAnonKey = Boolean(supabaseAnonKey)
+  const supabaseUrlIsRestEndpoint = isRestApiSupabaseUrl(supabaseUrl)
   return {
     hasSupabaseUrl,
     hasSupabaseAnonKey,
-    supabaseConfigured: hasSupabaseUrl && hasSupabaseAnonKey,
+    supabaseConfigured: hasSupabaseUrl && hasSupabaseAnonKey && !supabaseUrlIsRestEndpoint,
+    mode: import.meta.env.MODE,
+    prod: Boolean(import.meta.env.PROD),
+    supabaseUrlIsRestEndpoint,
   }
 }
 
@@ -83,7 +97,7 @@ export function getInitialStorageStatus(overrides = {}) {
 export function getSupabaseClient() {
   if (!isSupabasePersistenceConfigured()) return null
   if (!supabaseClient) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    supabaseClient = createClient(supabaseProjectUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
