@@ -31,13 +31,6 @@ export default defineConfig({
             return "supabase-vendor";
           }
 
-          if (
-            matchesPackage(normalized, ["recharts", "lightweight-charts"]) ||
-            normalized.includes("/node_modules/d3-")
-          ) {
-            return "charts-vendor";
-          }
-
           if (matchesPackage(normalized, ["xlsx"])) {
             return "spreadsheet-vendor";
           }
