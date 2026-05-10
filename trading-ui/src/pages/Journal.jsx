@@ -16,6 +16,7 @@ import {
   getSupabasePersistenceDiagnostic,
   isSupabasePersistenceConfigured,
   loadJournalTradesFromStorage,
+  saveJournalTradeToStorage,
   onSupabaseAuthStateChange,
   saveJournalTradesToStorage,
 } from "../services/supabaseStorage";
@@ -806,15 +807,21 @@ export default function Journal() {
   const [importing, setImporting] = useState(false);
   const [loadingJournal, setLoadingJournal] = useState(() => isSupabasePersistenceConfigured());
   const [clearingDataset, setClearingDataset] = useState(false);
+  const [savingTrade, setSavingTrade] = useState(false);
   const [importSummary, setImportSummary] = useState(null);
   const [clearSummary, setClearSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
   const [mlDatasetExporting, setMlDatasetExporting] = useState(false);
   const [mlDatasetExportSummary, setMlDatasetExportSummary] = useState(null);
   const importInputRef = useRef(null);
+  const tradesRef = useRef(initialJournalRef.current.trades);
   const storageHydratedRef = useRef(!isSupabasePersistenceConfigured());
   const firstAutoSaveRef = useRef(true);
   const suppressNextSaveRef = useRef(false);
+
+  useEffect(() => {
+    tradesRef.current = trades;
+  }, [trades]);
 
   useEffect(() => {
     if (!isSupabasePersistenceConfigured()) return undefined;
@@ -953,16 +960,62 @@ export default function Journal() {
     if (page > maxPage) setPage(maxPage);
   }, [page, trades.length]);
 
-  const saveTrade = useCallback((trade) => {
+  const saveTrade = useCallback(async (trade) => {
     const normalized = normalizeTrade(trade);
-    setTrades(prev => (
-      editingTrade
-        ? prev.map(t => t.id === normalized.id ? normalized : t)
-        : [normalized, ...prev]
-    ));
+    const isEditing = Boolean(editingTrade);
+    const currentTrades = tradesRef.current.map((current, index) => normalizeTrade(current, index));
+    const nextTrades = isEditing
+      ? currentTrades.map(t => t.id === normalized.id ? normalized : t)
+      : [normalized, ...currentTrades];
+
+    suppressNextSaveRef.current = true;
+    tradesRef.current = nextTrades;
+    setTrades(nextTrades);
     setShowModal(false);
     setEditingTrade(null);
-  }, [editingTrade]);
+
+    setSavingTrade(true);
+    try {
+      const saveResult = await saveJournalTradeToStorage(normalized, {
+        action: isEditing ? "update_trade" : "add_trade",
+        localTrades: nextTrades,
+      });
+      setStorageMode(saveResult.mode);
+      setStorageStatus(saveResult);
+
+      if (saveResult.mode === "supabase") {
+        const loadResult = await loadJournalTradesFromStorage();
+        const loadedTrades = (loadResult.trades || []).map((loadedTrade, index) => normalizeTrade(loadedTrade, index));
+        setStorageMode(loadResult.mode);
+        setStorageStatus({
+          ...loadResult,
+          lastSaveTarget: saveResult.lastSaveTarget,
+          lastSaveAction: saveResult.lastSaveAction,
+          lastSaveErrorMessage: saveResult.lastSaveErrorMessage,
+          lastInsertedRowCount: saveResult.lastInsertedRowCount,
+          returnedRowCount: saveResult.returnedRowCount,
+        });
+        suppressNextSaveRef.current = true;
+        tradesRef.current = loadedTrades;
+        setTrades(loadedTrades);
+        setPage(0);
+      } else if (saveResult.lastSaveErrorMessage) {
+        suppressNextSaveRef.current = true;
+        tradesRef.current = nextTrades;
+        setTrades(nextTrades);
+      }
+    } catch (error) {
+      setStorageStatus(prev => ({
+        ...(prev || getSupabasePersistenceDiagnostic()),
+        ok: false,
+        lastSaveTarget: storageMode,
+        lastSaveAction: isEditing ? "update_trade" : "add_trade",
+        lastSaveErrorMessage: error?.message || String(error),
+      }));
+    } finally {
+      setSavingTrade(false);
+    }
+  }, [editingTrade, storageMode]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -1363,15 +1416,18 @@ export default function Journal() {
           >
             {mlDatasetExporting ? "Exporting..." : "Export ML Dataset JSON"}
           </button>
-          <button onClick={() => { setEditingTrade(null); setShowModal(true); }}
+          <button
+            onClick={() => { setEditingTrade(null); setShowModal(true); }}
+            disabled={loadingJournal || savingTrade}
             style={{
-              padding: "10px 22px", borderRadius: 4, cursor: "pointer",
+              padding: "10px 22px", borderRadius: 4, cursor: loadingJournal || savingTrade ? "not-allowed" : "pointer",
               background: "#C8F135", border: "none", color: "#060608",
               fontFamily: "'Bebas Neue', sans-serif", fontSize: "1rem",
               letterSpacing: "0.06em", transition: "all 0.15s",
+              opacity: loadingJournal || savingTrade ? 0.65 : 1,
             }}
           >
-            + Add Trade
+            {savingTrade ? "Saving..." : "+ Add Trade"}
           </button>
         </div>
       </div>
@@ -1507,15 +1563,18 @@ export default function Journal() {
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.75rem", color: "#333344", marginBottom: 20 }}>
             Click + Add Trade to record your first trade.
           </div>
-          <button onClick={() => { setEditingTrade(null); setShowModal(true); }}
+          <button
+            onClick={() => { setEditingTrade(null); setShowModal(true); }}
+            disabled={loadingJournal || savingTrade}
             style={{
-              padding: "10px 24px", borderRadius: 4, cursor: "pointer",
+              padding: "10px 24px", borderRadius: 4, cursor: loadingJournal || savingTrade ? "not-allowed" : "pointer",
               background: "#C8F135", border: "none", color: "#060608",
               fontFamily: "'Bebas Neue', sans-serif", fontSize: "1rem",
               letterSpacing: "0.08em",
+              opacity: loadingJournal || savingTrade ? 0.65 : 1,
             }}
           >
-            + Add Trade
+            {savingTrade ? "Saving..." : "+ Add Trade"}
           </button>
         </div>
       ) : (
@@ -1737,6 +1796,8 @@ function StorageDebugStatus({ status }) {
     ["isAuthenticated", String(status.isAuthenticated === true || status.signedIn === true)],
     ["userId present", String(status.userIdPresent === true)],
     ["storageMode", status.storageMode || status.mode || "local"],
+    ["lastLoadTarget", status.lastLoadTarget || "null"],
+    ["loadedRowCount", status.loadedRowCount ?? 0],
     ["lastSaveTarget", status.lastSaveTarget || "null"],
     ["lastSaveAction", status.lastSaveAction || "null"],
     ["lastSaveErrorMessage", status.lastSaveErrorMessage || "null"],

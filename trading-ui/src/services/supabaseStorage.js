@@ -240,7 +240,7 @@ function createStorageResult({
 }) {
   const errorMessage = safeErrorMessage(error)
   const isLoad = String(action || '').startsWith('load')
-  const isSave = /save|delete|clear/.test(String(action || ''))
+  const isSave = /save|insert|add|update|upsert|delete|clear/.test(String(action || ''))
   const isClear = String(action || '').startsWith('clear')
   const status = {
     ...baseDiagnostic(),
@@ -588,6 +588,85 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       action: 'save journal_trades fallback',
       rowsAttempted: safeTrades.length,
       rowsSaved: localSaved ? safeTrades.length : 0,
+      signedIn: true,
+      userId,
+      localDemoMode: true,
+    })
+  }
+}
+
+export async function saveJournalTradeToStorage(trade, options = {}) {
+  const localTrades = safeArray(options.localTrades)
+  const action = options.action || 'upsert journal_trade'
+  const client = getSupabaseClient()
+  if (!client) {
+    const localSaved = writeStorage(STORAGE_KEYS.journal, localTrades)
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action,
+      rowsAttempted: localTrades.length,
+      rowsSaved: localSaved ? localTrades.length : 0,
+      trades: localTrades,
+    })
+  }
+
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) {
+    const localSaved = writeStorage(STORAGE_KEYS.journal, localTrades)
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      action: `${action} local demo`,
+      rowsAttempted: localTrades.length,
+      rowsSaved: localSaved ? localTrades.length : 0,
+      trades: localTrades,
+      signedIn: false,
+      localDemoMode: true,
+    })
+  }
+
+  try {
+    const row = toJournalTradeRow(trade, userId)
+    const { data, error } = await client
+      .from('journal_trades')
+      .upsert(row, { onConflict: 'id' })
+      .select('*')
+    if (error) throw error
+
+    const savedRows = safeArray(data)
+    if (savedRows.length !== 1) {
+      throw new Error(`Supabase saved ${savedRows.length} of 1 journal rows.`)
+    }
+
+    const savedTrade = fromJournalTradeRow(savedRows[0])
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action,
+      rowsAttempted: 1,
+      rowsSaved: 1,
+      returnedRowCount: 1,
+      lastInsertedRowCount: 1,
+      trades: [savedTrade],
+      signedIn: true,
+      userId,
+      localDemoMode: false,
+    })
+  } catch (error) {
+    const localSaved = options.fallbackToLocal === false
+      ? false
+      : writeStorage(STORAGE_KEYS.journal, localTrades)
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: localSaved,
+      error,
+      action: `${action} fallback`,
+      rowsAttempted: 1,
+      rowsSaved: localSaved ? localTrades.length : 0,
+      returnedRowCount: 0,
+      lastInsertedRowCount: 0,
+      trades: localSaved ? localTrades : null,
       signedIn: true,
       userId,
       localDemoMode: true,
