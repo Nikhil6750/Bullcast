@@ -1,9 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { exportTradeDataset } from "../services/api";
+import { exportTradeDataset, parseJournalTrades } from "../services/api";
 import StorageStatus from "../components/StorageStatus";
 import { STORAGE_KEYS, readStorage } from "../services/storage";
+import { DEMO_ENTRY_KEY } from "../services/entryState";
+import {
+  LAST_SAVED_TRADE_ID_KEY,
+  authenticatedModePrefersSupabase,
+  findTradeIndexById,
+  getTradePageForId,
+  reconcileVerifiedRowAfterReload,
+  tradeDateSortValue,
+} from "../services/journalPersistenceGuards";
 import {
   clearLocalJournalStorage,
   clearSupabaseJournalTrades,
@@ -15,6 +24,7 @@ import {
   getInitialStorageStatus,
   getSupabasePersistenceDiagnostic,
   isSupabasePersistenceConfigured,
+  loadJournalTradeByIdFromSupabase,
   loadJournalTradesFromStorage,
   saveJournalTradeToStorage,
   onSupabaseAuthStateChange,
@@ -24,6 +34,14 @@ import {
 const STORAGE_KEY = STORAGE_KEYS.journal;
 const LARGE_LOCAL_DATASET_THRESHOLD = 1000;
 const JOURNAL_PAGE_SIZE = 100;
+const APP_VERSION = String(import.meta.env.VITE_APP_VERSION || import.meta.env.VITE_BUILD_TIMESTAMP || import.meta.env.MODE || "unknown");
+const EMPTY_FILTER_VALUES = {
+  search: "",
+  assetType: "all",
+  result: "all",
+  dateFrom: "",
+  dateTo: "",
+};
 
 const ASSET_TYPES = ["stock", "forex", "crypto", "index", "unknown"];
 const SETUP_TAGS = [
@@ -250,6 +268,185 @@ function mergeVerifiedTradeAtTop(existingTrades, verifiedTrade, previousId = nul
   ));
 }
 
+function sortJournalTrades(rows, sortField = "created_at", sortDirection = "desc") {
+  const arr = [...(Array.isArray(rows) ? rows : [])];
+  const dir = sortDirection === "asc" ? 1 : -1;
+  arr.sort((a, b) => {
+    switch (sortField) {
+      case "created_at":
+        return (
+          (createdAtValue(a) - createdAtValue(b)) ||
+          String(a?.date || "").localeCompare(String(b?.date || "")) ||
+          String(a?.symbol || "").localeCompare(String(b?.symbol || ""))
+        ) * dir;
+      case "date":
+        return (
+          (tradeDateSortValue(a?.date) - tradeDateSortValue(b?.date)) ||
+          String(a?.date || "").localeCompare(String(b?.date || "")) ||
+          (createdAtValue(a) - createdAtValue(b)) ||
+          String(a?.symbol || "").localeCompare(String(b?.symbol || ""))
+        ) * dir;
+      case "symbol":
+        return String(a?.symbol || "").localeCompare(String(b?.symbol || "")) * dir;
+      case "pnl":
+        return ((Number(a?.pnl) || 0) - (Number(b?.pnl) || 0)) * dir;
+      case "result":
+        return String(a?.result || "").localeCompare(String(b?.result || "")) * dir;
+      default:
+        return 0;
+    }
+  });
+  return arr;
+}
+
+function readDemoFlag() {
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  return window.localStorage.getItem(DEMO_ENTRY_KEY);
+}
+
+function readLastSavedTradeId() {
+  if (typeof window === "undefined" || !window.localStorage) return "";
+  return String(window.localStorage.getItem(LAST_SAVED_TRADE_ID_KEY) || "").trim();
+}
+
+function persistLastSavedTradeId(id) {
+  const value = String(id || "").trim();
+  if (!value || typeof window === "undefined" || !window.localStorage) return;
+  window.localStorage.setItem(LAST_SAVED_TRADE_ID_KEY, value);
+}
+
+function summarizeDebugRows(rows) {
+  return (Array.isArray(rows) ? rows : []).slice(0, 5).map((row) => ({
+    id: row?.id || null,
+    symbol: row?.symbol || null,
+    created_at: row?.created_at || null,
+    date: row?.date || null,
+  }));
+}
+
+function buildJournalDebugReport({
+  status,
+  authEmail,
+  storageMode,
+  trades,
+  visibleTrades,
+  sortedTrades,
+  page,
+  sortCol,
+  sortDir,
+  lastSavedTradeId,
+}) {
+  const saveTradeId = status?.saveTradeId || lastSavedTradeId || "";
+  const loadedRows = Array.isArray(trades) ? trades : [];
+  const visibleRows = Array.isArray(visibleTrades) ? visibleTrades : [];
+  const latestRows = sortJournalTrades(loadedRows, "created_at", "desc");
+  return {
+    appVersion: APP_VERSION,
+    currentURL: typeof window !== "undefined" ? window.location.href : "",
+    isAuthenticated: status?.isAuthenticated === true || status?.signedIn === true,
+    currentUserId: status?.currentUserId || null,
+    currentUserEmail: authEmail || status?.currentUserEmail || null,
+    storageMode: storageMode || status?.storageMode || status?.mode || "local",
+    bullcast_demo_entered: readDemoFlag(),
+    supabaseConfigured: status?.supabaseConfigured === true,
+    loadedRowCount: loadedRows.length,
+    visibleRowCount: visibleRows.length,
+    currentPage: page + 1,
+    pageSize: JOURNAL_PAGE_SIZE,
+    sortField: sortCol,
+    sortDirection: sortDir,
+    activeFilters: { ...EMPTY_FILTER_VALUES },
+    filtersActive: false,
+    lastLoadTarget: status?.lastLoadTarget || null,
+    lastLoadErrorMessage: status?.lastLoadErrorMessage || null,
+    lastSaveAction: status?.lastSaveAction || null,
+    lastSaveTarget: status?.lastSaveTarget || null,
+    lastSaveErrorMessage: status?.lastSaveErrorMessage || null,
+    lastInsertedRowCount: status?.lastInsertedRowCount ?? 0,
+    lastReturnedRowIds: Array.isArray(status?.lastReturnedRowIds) ? status.lastReturnedRowIds : [],
+    saveStartedAt: status?.saveStartedAt || null,
+    saveTradeId: saveTradeId || null,
+    saveSymbol: status?.saveSymbol || null,
+    saveStep: status?.saveStep || "idle",
+    supabaseInsertStatus: status?.supabaseInsertStatus ?? null,
+    verifySelectStatus: status?.verifySelectStatus ?? null,
+    verifiedRowFound: status?.verifiedRowFound === true,
+    verifiedRowUserIdMatches: status?.verifiedRowUserIdMatches === true,
+    postSaveVisibleInTable: status?.postSaveVisibleInTable === true,
+    lastReloadAfterSaveCount: status?.lastReloadAfterSaveCount ?? 0,
+    first5VisibleRows: summarizeDebugRows(visibleRows),
+    latest5LoadedRows: summarizeDebugRows(latestRows),
+    saveTradeIdExistsInLoadedRows: findTradeIndexById(loadedRows, saveTradeId) >= 0,
+    saveTradeIdExistsInVisibleRows: findTradeIndexById(visibleRows, saveTradeId) >= 0,
+    lastSavedTradeId: lastSavedTradeId || null,
+    lastSavedTradeIdExistsInLoadedRows: findTradeIndexById(loadedRows, lastSavedTradeId) >= 0,
+    lastSavedTradeIdExistsInVisibleRows: findTradeIndexById(visibleRows, lastSavedTradeId) >= 0,
+    sortedRowCount: Array.isArray(sortedTrades) ? sortedTrades.length : 0,
+  };
+}
+
+function parsedTradeIssues(trade) {
+  const issues = [];
+  const missing = Array.isArray(trade?.missing_fields) ? trade.missing_fields : [];
+  if (!String(trade?.symbol || "").trim() || missing.includes("symbol")) issues.push("Missing symbol");
+  if (!["LONG", "SHORT"].includes(String(trade?.side || "").toUpperCase()) || missing.includes("side")) issues.push("Missing side");
+  if (parseOptionalNumber(trade?.entry) === null && parseOptionalNumber(trade?.exit) === null) {
+    issues.push("Missing entry or exit price");
+  } else if (parseOptionalNumber(trade?.entry) === null || missing.includes("entry")) {
+    issues.push("Missing entry price");
+  } else if (parseOptionalNumber(trade?.exit) === null || missing.includes("exit")) {
+    issues.push("Missing exit price");
+  }
+  if (parseOptionalNumber(trade?.quantity) === null || missing.includes("quantity")) issues.push("Missing quantity");
+  return Array.from(new Set(issues));
+}
+
+function parsedTradeCanSave(trade) {
+  const issues = parsedTradeIssues(trade);
+  return !issues.some(issue => ["Missing symbol", "Missing side", "Missing entry or exit price"].includes(issue));
+}
+
+function parsedTradeNeedsReview(trade) {
+  return trade?.needs_review === true || parsedTradeIssues(trade).length > 0;
+}
+
+function parsedTradeToJournalTrade(trade) {
+  const entry = parseOptionalNumber(trade?.entry);
+  const exit = parseOptionalNumber(trade?.exit);
+  const quantity = parseOptionalNumber(trade?.quantity);
+  const type = String(trade?.side || "LONG").toUpperCase() === "SHORT" ? "SHORT" : "LONG";
+  const { pnl, pnl_pct, result } = calcPnl(type, entry, exit, quantity);
+  const notes = [
+    String(trade?.notes || "").trim(),
+    parsedTradeIssues(trade).includes("Missing quantity") ? "AI parse warning: missing quantity." : "",
+  ].filter(Boolean).join(" ");
+
+  return normalizeTrade({
+    id: createJournalTradeId(),
+    date: String(trade?.date || dateStamp()),
+    symbol: String(trade?.symbol || "").trim().toUpperCase(),
+    asset_type: inferAssetType(trade?.symbol),
+    type,
+    entry_price: entry,
+    exit_price: exit,
+    quantity,
+    notes,
+    pnl,
+    pnl_pct,
+    result,
+    setup_tag: normalizeSetupTag(trade?.setup_tag || trade?.setup),
+    mistake_tag: MISTAKE_TAGS.includes(String(trade?.mistake_tag || "").trim()) ? trade.mistake_tag : "none",
+    confidence_score: parseConfidence(trade?.confidence_score),
+    planned_risk: parseOptionalNumber(trade?.planned_risk),
+    planned_reward: parseOptionalNumber(trade?.planned_reward),
+    rule_followed: normalizeBoolean(trade?.rule_followed),
+    entry_reason: String(trade?.entry_reason || "").trim(),
+    exit_reason: String(trade?.exit_reason || "").trim(),
+    synthetic_flag: false,
+    source_type: "gemini_text_parse",
+  });
+}
+
 function readLocalJournalRows() {
   try {
     const parsed = readStorage(STORAGE_KEY, []);
@@ -266,9 +463,10 @@ function loadRawStoredTrades() {
 function getInitialJournalState() {
   const localRows = readLocalJournalRows();
   const localRowCount = localRows.length;
+  const useLocalRowsImmediately = !isSupabasePersistenceConfigured();
 
   return {
-    trades: localRows.map((trade, index) => normalizeTrade(trade, index)),
+    trades: useLocalRowsImmediately ? localRows.map((trade, index) => normalizeTrade(trade, index)) : [],
     localRowCount,
     largeLocalDataset: localRowCount > LARGE_LOCAL_DATASET_THRESHOLD,
   };
@@ -829,6 +1027,14 @@ export default function Journal() {
   const [clearingDataset, setClearingDataset] = useState(false);
   const [savingTrade, setSavingTrade] = useState(false);
   const [saveNotice, setSaveNotice] = useState(null);
+  const [lastSavedTradeId, setLastSavedTradeId] = useState(() => readLastSavedTradeId());
+  const [debugReportText, setDebugReportText] = useState("");
+  const [debugCopyMessage, setDebugCopyMessage] = useState("");
+  const [aiTradeText, setAiTradeText] = useState("");
+  const [aiParsing, setAiParsing] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiParseSummary, setAiParseSummary] = useState(null);
+  const [aiParsedTrades, setAiParsedTrades] = useState([]);
   const [importSummary, setImportSummary] = useState(null);
   const [clearSummary, setClearSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
@@ -855,7 +1061,6 @@ export default function Journal() {
       hydrateRun = runId;
       setAuthEmail(session?.user?.email || null);
       setLoadingJournal(true);
-      const localRows = readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
 
       try {
         const result = await loadJournalTradesFromStorage();
@@ -864,42 +1069,92 @@ export default function Journal() {
         let nextResult = result;
         let nextTrades = (result.trades || []).map((trade, index) => normalizeTrade(trade, index));
         const signedIn = Boolean(session?.user?.id);
+        const supabaseWins = authenticatedModePrefersSupabase({
+          isAuthenticated: signedIn,
+          supabaseConfigured: result.supabaseConfigured === true,
+        });
+        let targetPage = 0;
+        let targetSortField = sortCol;
+        let targetSortDirection = sortDir;
+        let rememberedTradeId = "";
 
-        if (signedIn && result.mode === "supabase" && localRows.length > 0) {
-          const cloudIds = new Set(nextTrades.map(trade => trade.id));
-          const mergedTrades = [
-            ...nextTrades,
-            ...localRows.filter(trade => !cloudIds.has(trade.id)),
-          ];
-          const hasLocalRowsToSync = mergedTrades.length > nextTrades.length;
+        if (supabaseWins && result.mode !== "supabase") {
+          nextTrades = [];
+          nextResult = {
+            ...result,
+            mode: "supabase",
+            storageMode: "supabase",
+            localDemoMode: false,
+            loadedRowCount: 0,
+            trades: [],
+          };
+        }
 
-          if (!hasLocalRowsToSync) {
-            setStorageMode(nextResult.mode);
-            setStorageStatus(nextResult);
-            setLargeLocalDatasetCount(0);
-            suppressNextSaveRef.current = true;
-            setTrades(nextTrades);
-            setPage(0);
-            storageHydratedRef.current = true;
-            return;
-          }
+        if (signedIn && nextResult.mode === "supabase") {
+          rememberedTradeId = readLastSavedTradeId();
+          if (rememberedTradeId) {
+            setLastSavedTradeId(rememberedTradeId);
+            const sortedByCreatedAt = sortJournalTrades(nextTrades, "created_at", "desc");
+            const foundPage = getTradePageForId(sortedByCreatedAt, rememberedTradeId, JOURNAL_PAGE_SIZE);
 
-          const syncResult = await saveJournalTradesToStorage(mergedTrades, { fallbackToLocal: false });
-          if (!active || runId !== hydrateRun) return;
-          nextResult = syncResult;
+            targetSortField = "created_at";
+            targetSortDirection = "desc";
+            setSortCol("created_at");
+            setSortDir("desc");
 
-          if (syncResult.mode === "supabase") {
-            const reloadResult = await loadJournalTradesFromStorage();
-            if (!active || runId !== hydrateRun) return;
-            nextResult = reloadResult;
-            nextTrades = (reloadResult.trades || []).map((trade, index) => normalizeTrade(trade, index));
-          } else {
-            nextTrades = mergedTrades;
+            if (foundPage.index >= 0) {
+              targetPage = foundPage.pageIndex;
+              setSaveNotice({
+                type: "success",
+                message: targetPage > 0 ? `Saved trade found on page ${targetPage + 1}.` : "Latest saved trade is visible.",
+              });
+            } else if (nextResult.ok !== false) {
+              const exactResult = await loadJournalTradeByIdFromSupabase(rememberedTradeId);
+              if (!active || runId !== hydrateRun) return;
+              const exactTrade = exactResult.trades?.[0] ? normalizeTrade(exactResult.trades[0]) : null;
+              const reconciled = reconcileVerifiedRowAfterReload({
+                loadedRows: nextTrades,
+                verifiedRowId: rememberedTradeId,
+                exactRow: exactTrade,
+              });
+
+              if (reconciled.mergedExactRow) {
+                nextTrades = mergeVerifiedTradeAtTop(nextTrades, exactTrade);
+                targetPage = 0;
+                nextResult = {
+                  ...nextResult,
+                  loadedRowCount: nextTrades.length,
+                  verifiedRowFound: true,
+                  verifiedRowUserIdMatches: true,
+                  postSaveVisibleInTable: true,
+                };
+                setSaveNotice({
+                  type: "success",
+                  message: "Saved to Supabase and verified. Exact lookup restored it after refresh.",
+                });
+              } else {
+                setSaveNotice({
+                  type: "warning",
+                  message: "Latest saved trade was not found after refresh. Supabase exact lookup did not return that id for this user.",
+                });
+              }
+            }
           }
         }
 
         setStorageMode(nextResult.mode);
-        setStorageStatus(nextResult);
+        const finalSortedForStatus = sortJournalTrades(nextTrades, targetSortField, targetSortDirection);
+        const finalVisibleForStatus = finalSortedForStatus.slice(targetPage * JOURNAL_PAGE_SIZE, (targetPage + 1) * JOURNAL_PAGE_SIZE);
+        setStorageStatus({
+          ...nextResult,
+          loadedRowCount: nextTrades.length,
+          currentPage: targetPage + 1,
+          sortField: targetSortField,
+          sortDirection: targetSortDirection,
+          postSaveVisibleInTable: rememberedTradeId
+            ? findTradeIndexById(finalVisibleForStatus, rememberedTradeId) >= 0
+            : nextResult.postSaveVisibleInTable,
+        });
         if (nextResult.mode === "local" && (nextResult.loadedRowCount ?? 0) > LARGE_LOCAL_DATASET_THRESHOLD) {
           setLargeLocalDatasetCount(nextResult.loadedRowCount);
         } else if (nextResult.mode === "supabase") {
@@ -907,19 +1162,24 @@ export default function Journal() {
         }
         suppressNextSaveRef.current = true;
         setTrades(nextTrades);
-        setPage(0);
+        setPage(targetPage);
         storageHydratedRef.current = true;
       } catch (error) {
         if (!active || runId !== hydrateRun) return;
-        const localRows = readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
+        const signedIn = Boolean(session?.user?.id);
+        const localRows = signedIn ? [] : readLocalJournalRows().map((trade, index) => normalizeTrade(trade, index));
         const fallbackStatus = getInitialStorageStatus({
-          mode: getInitialStorageMode(),
-          lastLoadTarget: "local",
+          mode: signedIn ? "supabase" : getInitialStorageMode(),
+          storageMode: signedIn ? "supabase" : getInitialStorageMode(),
+          lastLoadTarget: signedIn ? "supabase" : "local",
           loadedRowCount: localRows.length,
-          lastSaveErrorMessage: error?.message || String(error),
-          action: "load journal_trades fallback",
-          localDemoMode: true,
-          signedIn: Boolean(session?.user?.id),
+          lastLoadErrorMessage: error?.message || String(error),
+          action: signedIn ? "load journal_trades" : "load journal_trades fallback",
+          localDemoMode: !signedIn,
+          signedIn,
+          isAuthenticated: signedIn,
+          currentUserId: session?.user?.id || null,
+          currentUserEmail: session?.user?.email || null,
         });
         setStorageMode(fallbackStatus.mode);
         setStorageStatus(fallbackStatus);
@@ -957,7 +1217,8 @@ export default function Journal() {
     }
 
     let active = true;
-    saveJournalTradesToStorage(trades).then((result) => {
+    const signedInAutoSave = storageMode === "supabase" || storageStatus?.signedIn === true || storageStatus?.isAuthenticated === true;
+    saveJournalTradesToStorage(trades, { fallbackToLocal: !signedInAutoSave }).then((result) => {
       if (!active) return;
       setStorageMode(result.mode);
       setStorageStatus(result);
@@ -1030,35 +1291,104 @@ export default function Journal() {
       if (saveResult.mode === "supabase") {
         const verifiedTrade = normalizeTrade(saveResult.trades?.[0] || normalized);
         const previousId = isEditing ? editingTrade?.id : normalized.id;
-        const mergedTrades = mergeVerifiedTradeAtTop(currentTrades, verifiedTrade, previousId);
-        const postSaveVisibleInTable = mergedTrades.slice(0, JOURNAL_PAGE_SIZE).some(t => t.id === verifiedTrade.id);
+        const verifiedTradeId = String(verifiedTrade.id || saveResult.saveTradeId || "");
+        persistLastSavedTradeId(verifiedTradeId);
+        setLastSavedTradeId(verifiedTradeId);
+
+        const reloadResult = await loadJournalTradesFromStorage();
+        const reloadedTrades = (reloadResult.trades || []).map((row, index) => normalizeTrade(row, index));
+        let exactLookupResult = null;
+        let exactTrade = null;
+        let finalTrades = reloadedTrades;
+
+        if (findTradeIndexById(reloadedTrades, verifiedTradeId) < 0) {
+          exactLookupResult = await loadJournalTradeByIdFromSupabase(verifiedTradeId);
+          exactTrade = exactLookupResult.trades?.[0] ? normalizeTrade(exactLookupResult.trades[0]) : null;
+        }
+
+        const reconciled = reconcileVerifiedRowAfterReload({
+          loadedRows: reloadedTrades,
+          verifiedRowId: verifiedTradeId,
+          exactRow: exactTrade,
+        });
+
+        if (reconciled.missingAfterExactLookup) {
+          suppressNextSaveRef.current = true;
+          tradesRef.current = reloadedTrades;
+          setTrades(reloadedTrades);
+          setSortCol("created_at");
+          setSortDir("desc");
+          setPage(0);
+          setStorageStatus({
+            ...saveResult,
+            lastLoadTarget: exactLookupResult?.lastLoadTarget || reloadResult.lastLoadTarget,
+            lastLoadErrorMessage: exactLookupResult?.lastLoadErrorMessage || reloadResult.lastLoadErrorMessage,
+            loadedRowCount: reloadedTrades.length,
+            lastReloadAfterSaveCount: reloadedTrades.length,
+            saveTradeId: verifiedTradeId,
+            saveSymbol: verifiedTrade.symbol,
+            saveStep: "failed",
+            verifiedRowFound: false,
+            verifiedRowUserIdMatches: false,
+            postSaveVisibleInTable: false,
+            currentPage: 1,
+            sortField: "created_at",
+            sortDirection: "desc",
+          });
+          setSaveNotice({
+            type: "error",
+            message: "Save verification failed after reload.",
+          });
+          return;
+        }
+
+        finalTrades = reconciled.mergedExactRow
+          ? mergeVerifiedTradeAtTop(reloadedTrades, exactTrade || verifiedTrade, previousId)
+          : reloadedTrades;
+
+        if (findTradeIndexById(finalTrades, verifiedTradeId) < 0) {
+          finalTrades = mergeVerifiedTradeAtTop(finalTrades, verifiedTrade, previousId);
+        }
+
+        const finalSorted = sortJournalTrades(finalTrades, "created_at", "desc");
+        const foundPage = getTradePageForId(finalSorted, verifiedTradeId, JOURNAL_PAGE_SIZE);
+        const targetPage = foundPage.pageIndex >= 0 ? foundPage.pageIndex : 0;
+        const postSaveVisibleInTable = findTradeIndexById(
+          finalSorted.slice(targetPage * JOURNAL_PAGE_SIZE, (targetPage + 1) * JOURNAL_PAGE_SIZE),
+          verifiedTradeId
+        ) >= 0;
         suppressNextSaveRef.current = true;
-        tradesRef.current = mergedTrades;
-        setTrades(mergedTrades);
+        tradesRef.current = finalTrades;
+        setTrades(finalTrades);
         setSortCol("created_at");
         setSortDir("desc");
-        setPage(0);
+        setPage(targetPage);
         setStorageStatus({
           ...saveResult,
+          lastLoadTarget: exactLookupResult?.lastLoadTarget || reloadResult.lastLoadTarget,
+          lastLoadErrorMessage: exactLookupResult?.lastLoadErrorMessage || reloadResult.lastLoadErrorMessage,
           lastSaveTarget: saveResult.lastSaveTarget,
           lastSaveAction: saveResult.lastSaveAction,
           lastSaveErrorMessage: saveResult.lastSaveErrorMessage,
           lastInsertedRowCount: saveResult.lastInsertedRowCount,
           returnedRowCount: saveResult.returnedRowCount,
           lastReturnedRowIds: saveResult.lastReturnedRowIds,
-          lastReloadAfterSaveCount: mergedTrades.length,
+          loadedRowCount: finalTrades.length,
+          lastReloadAfterSaveCount: reloadedTrades.length,
+          saveTradeId: verifiedTradeId,
+          saveSymbol: verifiedTrade.symbol,
           saveStep: postSaveVisibleInTable ? "success" : "failed",
           verifiedRowFound: saveResult.verifiedRowFound === true,
           verifiedRowUserIdMatches: saveResult.verifiedRowUserIdMatches === true,
           postSaveVisibleInTable,
-          currentPage: 1,
+          currentPage: targetPage + 1,
           sortField: "created_at",
           sortDirection: "desc",
         });
         setSaveNotice({
           type: postSaveVisibleInTable ? "success" : "error",
           message: postSaveVisibleInTable
-            ? "Saved to Supabase and verified."
+            ? (targetPage > 0 ? `Saved to Supabase and verified. Saved trade found on page ${targetPage + 1}.` : "Saved to Supabase and verified.")
             : "Save failed. Trade was not verified in Supabase.",
         });
       } else if (saveResult.lastSaveErrorMessage) {
@@ -1100,6 +1430,112 @@ export default function Journal() {
       setSavingTrade(false);
     }
   }, [editingTrade, page, sortCol, sortDir, storageMode, storageStatus]);
+
+  const parseAiTradeEntry = useCallback(async () => {
+    const text = aiTradeText.trim();
+    setAiParseSummary(null);
+    if (!text) {
+      setAiParseSummary({
+        tone: "warning",
+        title: "AI Trade Entry",
+        messages: ["Enter a trade description before parsing."],
+      });
+      return;
+    }
+
+    setAiParsing(true);
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+      const result = await parseJournalTrades({
+        text,
+        timezone,
+        default_date: dateStamp(),
+      });
+      const parsedRows = Array.isArray(result?.trades) ? result.trades : [];
+      const previewRows = parsedRows.map((trade, index) => ({
+        ...trade,
+        client_id: `${Date.now()}-${index}`,
+        selected: parsedTradeCanSave(trade),
+        needs_review: parsedTradeNeedsReview(trade),
+      }));
+      setAiParsedTrades(previewRows);
+      setAiParseSummary({
+        tone: previewRows.length > 0 ? "success" : "warning",
+        title: previewRows.length > 0 ? "Parsed Successfully" : "No Trades Parsed",
+        metrics: [
+          ["Parsed Rows", previewRows.length],
+          ["Needs Review", previewRows.filter(parsedTradeNeedsReview).length],
+          ["Gemini Enabled", String(result?.llm_enabled === true)],
+        ],
+        messages: [
+          ...(result?.llm_enabled === false ? ["Gemini parsing is unavailable. No frontend API key was used."] : []),
+          ...((result?.warnings || []).map(String)),
+          ...previewRows.flatMap(row => parsedTradeIssues(row)).slice(0, 5),
+        ],
+      });
+    } catch (error) {
+      setAiParseSummary({
+        tone: "error",
+        title: "AI Parse Failed",
+        messages: [String(error?.message || error || "Could not parse trade description.")],
+      });
+    } finally {
+      setAiParsing(false);
+    }
+  }, [aiTradeText]);
+
+  const updateAiParsedTrade = useCallback((clientId, field, value) => {
+    setAiParsedTrades(prev => prev.map(row => {
+      if (row.client_id !== clientId) return row;
+      const next = { ...row, [field]: value };
+      next.needs_review = parsedTradeNeedsReview(next);
+      if (field === "selected") next.selected = value;
+      return next;
+    }));
+  }, []);
+
+  const saveSelectedAiTrades = useCallback(async () => {
+    const selectedRows = aiParsedTrades.filter(row => row.selected);
+    const validRows = selectedRows.filter(parsedTradeCanSave);
+    const blockedRows = selectedRows.length - validRows.length;
+
+    if (validRows.length === 0) {
+      setAiParseSummary({
+        tone: "warning",
+        title: "Needs Review",
+        messages: ["Select at least one parsed trade with symbol, side, and an entry or exit price before saving."],
+      });
+      return;
+    }
+
+    setAiSaving(true);
+    try {
+      for (const row of validRows) {
+        await saveTrade(parsedTradeToJournalTrade(row));
+      }
+      setAiParsedTrades(prev => prev.map(row => (
+        validRows.some(saved => saved.client_id === row.client_id)
+          ? { ...row, selected: false, saved: true }
+          : row
+      )));
+      setAiParseSummary({
+        tone: blockedRows > 0 ? "warning" : "success",
+        title: "AI Trades Saved",
+        metrics: [
+          ["Saved", validRows.length],
+          ["Still Needs Review", blockedRows],
+        ],
+        messages: [
+          storageMode === "supabase" || storageStatus?.signedIn === true
+            ? "Saved to Supabase and verified."
+            : "Saved to localStorage.",
+          ...(blockedRows > 0 ? ["Some selected rows still need required fields before saving."] : []),
+        ],
+      });
+    } finally {
+      setAiSaving(false);
+    }
+  }, [aiParsedTrades, saveTrade, storageMode, storageStatus]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -1349,37 +1785,125 @@ export default function Journal() {
   };
 
   const sorted = useMemo(() => {
-    const arr = [...trades];
-    const dir = sortDir === "asc" ? 1 : -1;
-    const createdAtValue = (trade) => {
-      const value = Date.parse(trade?.created_at || "");
-      return Number.isFinite(value) ? value : 0;
-    };
-    arr.sort((a, b) => {
-      switch (sortCol) {
-        case "created_at":
-          return (
-            (createdAtValue(a) - createdAtValue(b)) ||
-            a.date.localeCompare(b.date) ||
-            a.symbol.localeCompare(b.symbol)
-          ) * dir;
-        case "date":
-          return (
-            a.date.localeCompare(b.date) ||
-            (createdAtValue(a) - createdAtValue(b)) ||
-            a.symbol.localeCompare(b.symbol)
-          ) * dir;
-        case "symbol": return a.symbol.localeCompare(b.symbol) * dir;
-        case "pnl": return ((Number(a.pnl) || 0) - (Number(b.pnl) || 0)) * dir;
-        case "result": return a.result.localeCompare(b.result) * dir;
-        default: return 0;
-      }
-    });
-    return arr;
+    return sortJournalTrades(trades, sortCol, sortDir);
   }, [trades, sortCol, sortDir]);
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / JOURNAL_PAGE_SIZE));
   const visibleTrades = sorted.slice(page * JOURNAL_PAGE_SIZE, (page + 1) * JOURNAL_PAGE_SIZE);
+  const filtersActive = false;
+  const debugReport = useMemo(() => buildJournalDebugReport({
+    status: storageStatus,
+    authEmail,
+    storageMode,
+    trades,
+    visibleTrades,
+    sortedTrades: sorted,
+    page,
+    sortCol,
+    sortDir,
+    lastSavedTradeId,
+  }), [authEmail, lastSavedTradeId, page, sortCol, sortDir, sorted, storageMode, storageStatus, trades, visibleTrades]);
+
+  const copyDebugReport = useCallback(async () => {
+    const text = JSON.stringify(debugReport, null, 2);
+    setDebugReportText(text);
+    setDebugCopyMessage("");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setDebugCopyMessage("Debug report copied.");
+      } else {
+        setDebugCopyMessage("Clipboard unavailable. Debug report shown below.");
+      }
+    } catch {
+      setDebugCopyMessage("Clipboard blocked. Debug report shown below.");
+    }
+  }, [debugReport]);
+
+  const findLatestSavedTrade = useCallback(async () => {
+    const targetId = String(lastSavedTradeId || storageStatus?.saveTradeId || readLastSavedTradeId() || "").trim();
+    if (!targetId) {
+      setSaveNotice({
+        type: "warning",
+        message: "No saved trade id is available yet.",
+      });
+      return;
+    }
+
+    setLastSavedTradeId(targetId);
+    persistLastSavedTradeId(targetId);
+    setSortCol("created_at");
+    setSortDir("desc");
+
+    const loadedRows = tradesRef.current.map((trade, index) => normalizeTrade(trade, index));
+    const sortedLoadedRows = sortJournalTrades(loadedRows, "created_at", "desc");
+    let foundPage = getTradePageForId(sortedLoadedRows, targetId, JOURNAL_PAGE_SIZE);
+
+    if (foundPage.index >= 0) {
+      setPage(foundPage.pageIndex);
+      setStorageStatus(prev => ({
+        ...(prev || getSupabasePersistenceDiagnostic()),
+        currentPage: foundPage.pageIndex + 1,
+        sortField: "created_at",
+        sortDirection: "desc",
+        postSaveVisibleInTable: true,
+      }));
+      setSaveNotice({
+        type: "success",
+        message: `Saved trade found on page ${foundPage.pageIndex + 1}.`,
+      });
+      return;
+    }
+
+    const exactResult = await loadJournalTradeByIdFromSupabase(targetId);
+    const exactTrade = exactResult.trades?.[0] ? normalizeTrade(exactResult.trades[0]) : null;
+
+    if (exactTrade) {
+      const mergedTrades = mergeVerifiedTradeAtTop(loadedRows, exactTrade);
+      const sortedMergedRows = sortJournalTrades(mergedTrades, "created_at", "desc");
+      foundPage = getTradePageForId(sortedMergedRows, targetId, JOURNAL_PAGE_SIZE);
+      const targetPage = foundPage.pageIndex >= 0 ? foundPage.pageIndex : 0;
+      suppressNextSaveRef.current = true;
+      tradesRef.current = mergedTrades;
+      setTrades(mergedTrades);
+      setStorageMode(exactResult.mode);
+      setPage(targetPage);
+      setStorageStatus(prev => ({
+        ...(prev || getSupabasePersistenceDiagnostic()),
+        lastLoadTarget: exactResult.lastLoadTarget,
+        lastLoadErrorMessage: exactResult.lastLoadErrorMessage,
+        loadedRowCount: mergedTrades.length,
+        currentPage: targetPage + 1,
+        sortField: "created_at",
+        sortDirection: "desc",
+        verifiedRowFound: true,
+        verifiedRowUserIdMatches: true,
+        postSaveVisibleInTable: true,
+      }));
+      setSaveNotice({
+        type: "success",
+        message: "Saved to Supabase and verified. Exact lookup restored the saved trade.",
+      });
+      return;
+    }
+
+    setStorageStatus(prev => ({
+      ...(prev || getSupabasePersistenceDiagnostic()),
+      lastLoadTarget: exactResult.lastLoadTarget,
+      lastLoadErrorMessage: exactResult.lastLoadErrorMessage || "Exact Supabase lookup did not return the saved trade id for this user.",
+      verifiedRowFound: false,
+      verifiedRowUserIdMatches: false,
+      postSaveVisibleInTable: false,
+      currentPage: page + 1,
+      sortField: "created_at",
+      sortDirection: "desc",
+    }));
+    setSaveNotice({
+      type: "warning",
+      message: "Saved trade was not found in loaded rows or by exact Supabase lookup for this user.",
+    });
+  }, [lastSavedTradeId, page, storageStatus]);
 
   // Summary calculations
   const summary = useMemo(() => {
@@ -1437,7 +1961,12 @@ export default function Journal() {
             }}>
               Storage details
             </summary>
-            <StorageDebugStatus status={storageStatus} />
+            <StorageDebugStatus
+              status={storageStatus}
+              debugReportText={debugReportText}
+              debugCopyMessage={debugCopyMessage}
+              onCopyDebugReport={copyDebugReport}
+            />
           </details>
           {storageMode !== "supabase" && storageStatus?.supabaseConfigured === true && (
             <div style={{
@@ -1464,6 +1993,27 @@ export default function Journal() {
             }}>
               {saveNotice.message}
             </div>
+          )}
+          {(lastSavedTradeId || storageStatus?.saveTradeId) && (
+            <button
+              onClick={findLatestSavedTrade}
+              disabled={loadingJournal}
+              style={{
+                marginTop: 8,
+                padding: "8px 10px",
+                borderRadius: 4,
+                border: "1px solid rgba(200,241,53,0.22)",
+                background: "rgba(200,241,53,0.06)",
+                color: loadingJournal ? "#555566" : "#C8F135",
+                cursor: loadingJournal ? "not-allowed" : "pointer",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "0.66rem",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              Find latest saved trade
+            </button>
           )}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1546,6 +2096,18 @@ export default function Journal() {
         </div>
       </div>
 
+      <AITradeEntryPanel
+        text={aiTradeText}
+        parsedTrades={aiParsedTrades}
+        parsing={aiParsing}
+        saving={aiSaving}
+        summary={aiParseSummary}
+        onTextChange={setAiTradeText}
+        onParse={parseAiTradeEntry}
+        onUpdateRow={updateAiParsedTrade}
+        onSaveSelected={saveSelectedAiTrades}
+      />
+
       <div style={{
         marginBottom: 16,
         padding: "10px 12px",
@@ -1566,6 +2128,14 @@ export default function Journal() {
           tone="success"
           title="Loading Journal"
           messages={["Loading journal rows from Supabase before using any local fallback."]}
+        />
+      )}
+
+      {filtersActive && (
+        <JournalActionSummary
+          tone="warning"
+          title="Filters Active"
+          messages={["Some trades may be hidden by filters."]}
         />
       )}
 
@@ -1835,6 +2405,204 @@ export default function Journal() {
 }
 
 // --- Utility sub-components ---
+function AITradeEntryPanel({
+  text,
+  parsedTrades,
+  parsing,
+  saving,
+  summary,
+  onTextChange,
+  onParse,
+  onUpdateRow,
+  onSaveSelected,
+}) {
+  const selectedCount = parsedTrades.filter(row => row.selected).length;
+
+  return (
+    <div style={{
+      marginBottom: 18,
+      padding: 14,
+      background: "#0a0a0f",
+      border: "1px solid rgba(200,241,53,0.12)",
+      borderRadius: 4,
+    }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 10,
+      }}>
+        <div style={{
+          color: "#C8F135",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.68rem",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}>
+          AI Trade Entry
+        </div>
+        <button
+          type="button"
+          onClick={onParse}
+          disabled={parsing || saving}
+          style={paginationButtonStyle(parsing || saving)}
+        >
+          {parsing ? "Parsing..." : "Parse with Gemini"}
+        </button>
+      </div>
+      <textarea
+        value={text}
+        onChange={event => onTextChange(event.target.value)}
+        placeholder="Bought TATA at 820, sold at 842, qty 10. Breakout retest. Followed rules."
+        style={{
+          width: "100%",
+          minHeight: 92,
+          resize: "vertical",
+          borderRadius: 4,
+          border: "1px solid rgba(200,241,53,0.14)",
+          background: "#060608",
+          color: "#e5e5e5",
+          padding: 10,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.72rem",
+          lineHeight: 1.6,
+          marginBottom: 10,
+        }}
+      />
+
+      {summary && (
+        <JournalActionSummary
+          tone={summary.tone}
+          title={summary.title}
+          metrics={summary.metrics || []}
+          messages={summary.messages || []}
+        />
+      )}
+
+      {parsedTrades.length > 0 && (
+        <>
+          <div style={{ overflowX: "auto", marginTop: 10 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1180 }}>
+              <thead>
+                <tr>
+                  <Th>Select</Th>
+                  <Th>Status</Th>
+                  <Th>Date</Th>
+                  <Th>Symbol</Th>
+                  <Th>Side</Th>
+                  <Th>Entry</Th>
+                  <Th>Exit</Th>
+                  <Th>Qty</Th>
+                  <Th>Setup</Th>
+                  <Th>Mistake</Th>
+                  <Th>Rules</Th>
+                  <Th>Risk</Th>
+                  <Th>Reward</Th>
+                  <Th>Notes</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {parsedTrades.map((row) => {
+                  const issues = parsedTradeIssues(row);
+                  const canSave = parsedTradeCanSave(row);
+                  return (
+                    <tr key={row.client_id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                      <Td>
+                        <input
+                          type="checkbox"
+                          checked={row.selected === true}
+                          disabled={row.saved === true}
+                          onChange={event => onUpdateRow(row.client_id, "selected", event.target.checked)}
+                        />
+                      </Td>
+                      <Td>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 170 }}>
+                          {row.saved ? <TagBadge label="Saved" color="#00FF87" /> : null}
+                          {!row.saved && canSave && issues.length === 0 ? <TagBadge label="Ready" color="#00FF87" /> : null}
+                          {!row.saved && issues.length > 0 ? <TagBadge label="Needs Review" color="#FFB84D" /> : null}
+                          {issues.slice(0, 2).map(issue => <TagBadge key={issue} label={issue} color="#FFB84D" />)}
+                        </div>
+                      </Td>
+                      <Td><AiCell value={row.date || ""} onChange={value => onUpdateRow(row.client_id, "date", value)} /></Td>
+                      <Td><AiCell value={row.symbol || ""} onChange={value => onUpdateRow(row.client_id, "symbol", value.toUpperCase())} /></Td>
+                      <Td>
+                        <select
+                          value={row.side || ""}
+                          onChange={event => onUpdateRow(row.client_id, "side", event.target.value)}
+                          style={aiInputStyle}
+                        >
+                          <option value="">Review</option>
+                          <option value="LONG">LONG</option>
+                          <option value="SHORT">SHORT</option>
+                        </select>
+                      </Td>
+                      <Td><AiCell value={row.entry ?? ""} onChange={value => onUpdateRow(row.client_id, "entry", value)} /></Td>
+                      <Td><AiCell value={row.exit ?? ""} onChange={value => onUpdateRow(row.client_id, "exit", value)} /></Td>
+                      <Td><AiCell value={row.quantity ?? ""} onChange={value => onUpdateRow(row.client_id, "quantity", value)} /></Td>
+                      <Td><AiCell value={row.setup_tag || row.setup || ""} onChange={value => onUpdateRow(row.client_id, "setup_tag", value)} /></Td>
+                      <Td><AiCell value={row.mistake_tag || row.mistake || "none"} onChange={value => onUpdateRow(row.client_id, "mistake_tag", value)} /></Td>
+                      <Td>
+                        <select
+                          value={row.rule_followed === true ? "true" : row.rule_followed === false ? "false" : ""}
+                          onChange={event => onUpdateRow(row.client_id, "rule_followed", event.target.value === "" ? null : event.target.value === "true")}
+                          style={aiInputStyle}
+                        >
+                          <option value="">Unknown</option>
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </select>
+                      </Td>
+                      <Td><AiCell value={row.planned_risk ?? ""} onChange={value => onUpdateRow(row.client_id, "planned_risk", value)} /></Td>
+                      <Td><AiCell value={row.planned_reward ?? ""} onChange={value => onUpdateRow(row.client_id, "planned_reward", value)} /></Td>
+                      <Td><AiCell value={row.notes || ""} onChange={value => onUpdateRow(row.client_id, "notes", value)} wide /></Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+            <button
+              type="button"
+              onClick={onSaveSelected}
+              disabled={saving || parsing || selectedCount === 0}
+              style={paginationButtonStyle(saving || parsing || selectedCount === 0)}
+            >
+              {saving ? "Saving..." : `Save selected trades (${selectedCount})`}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const aiInputStyle = {
+  width: "100%",
+  minWidth: 78,
+  borderRadius: 4,
+  border: "1px solid rgba(200,241,53,0.12)",
+  background: "#060608",
+  color: "#e5e5e5",
+  padding: "6px 7px",
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: "0.66rem",
+};
+
+function AiCell({ value, onChange, wide = false }) {
+  return (
+    <input
+      value={value}
+      onChange={event => onChange(event.target.value)}
+      style={{
+        ...aiInputStyle,
+        minWidth: wide ? 180 : aiInputStyle.minWidth,
+      }}
+    />
+  );
+}
+
 function JournalActionSummary({ title, metrics = [], messages = [], tone = "success" }) {
   const toneColor = tone === "error" ? "#FF3B3B" : tone === "warning" ? "#FFB84D" : "#C8F135";
   const toneBorder = tone === "error" ? "rgba(255,59,59,0.22)" : tone === "warning" ? "rgba(255,184,77,0.22)" : "rgba(200,241,53,0.14)";
@@ -1904,12 +2672,13 @@ function JournalActionSummary({ title, metrics = [], messages = [], tone = "succ
   );
 }
 
-function StorageDebugStatus({ status }) {
+function StorageDebugStatus({ status, debugReportText, debugCopyMessage, onCopyDebugReport }) {
   if (!status) return null;
   const items = [
     ["isAuthenticated", String(status.isAuthenticated === true || status.signedIn === true)],
     ["userId present", String(status.userIdPresent === true)],
     ["currentUserId", status.currentUserId || "null"],
+    ["currentUserEmail", status.currentUserEmail || "null"],
     ["storageMode", status.storageMode || status.mode || "local"],
     ["lastLoadTarget", status.lastLoadTarget || "null"],
     ["lastLoadErrorMessage", status.lastLoadErrorMessage || "null"],
@@ -1938,29 +2707,81 @@ function StorageDebugStatus({ status }) {
   ];
 
   return (
-    <div style={{
-      marginTop: 6,
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-      gap: 6,
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: "0.58rem",
-      color: status.lastSaveErrorMessage ? "#FFB84D" : "#555566",
-      lineHeight: 1.6,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
-    }}>
-      {items.map(([label, value]) => (
-        <div key={label} style={{
-          border: "1px solid rgba(200,241,53,0.08)",
-          borderRadius: 4,
-          padding: "6px 8px",
-          background: "rgba(255,255,255,0.015)",
-        }}>
-          <span style={{ color: "#888899" }}>{label}: </span>
-          <span style={{ color: status.lastSaveErrorMessage ? "#FFB84D" : "#C8F135" }}>{value}</span>
-        </div>
-      ))}
+    <div>
+      <div style={{
+        marginTop: 6,
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 6,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.58rem",
+        color: status.lastSaveErrorMessage ? "#FFB84D" : "#555566",
+        lineHeight: 1.6,
+        letterSpacing: "0.04em",
+        textTransform: "uppercase",
+      }}>
+        {items.map(([label, value]) => (
+          <div key={label} style={{
+            border: "1px solid rgba(200,241,53,0.08)",
+            borderRadius: 4,
+            padding: "6px 8px",
+            background: "rgba(255,255,255,0.015)",
+          }}>
+            <span style={{ color: "#888899" }}>{label}: </span>
+            <span style={{ color: status.lastSaveErrorMessage ? "#FFB84D" : "#C8F135" }}>{value}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={onCopyDebugReport}
+          style={{
+            padding: "7px 10px",
+            borderRadius: 4,
+            border: "1px solid rgba(200,241,53,0.2)",
+            background: "rgba(200,241,53,0.06)",
+            color: "#C8F135",
+            cursor: "pointer",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "0.62rem",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Copy Debug Report
+        </button>
+        {debugCopyMessage && (
+          <span style={{
+            marginLeft: 8,
+            color: "#888899",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "0.62rem",
+          }}>
+            {debugCopyMessage}
+          </span>
+        )}
+        {debugReportText && (
+          <textarea
+            readOnly
+            value={debugReportText}
+            style={{
+              marginTop: 8,
+              width: "100%",
+              minHeight: 180,
+              resize: "vertical",
+              borderRadius: 4,
+              border: "1px solid rgba(200,241,53,0.14)",
+              background: "#060608",
+              color: "#C8F135",
+              padding: 10,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.62rem",
+              lineHeight: 1.5,
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

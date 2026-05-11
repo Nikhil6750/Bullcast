@@ -126,6 +126,7 @@ from backend.backtesting import run_backtest
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.intelligence.mistake_summary import build_mistake_summary
 from backend.intelligence.journal_summary import build_journal_summary
+from backend.intelligence.trade_entry_parser import parse_trade_entries
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -178,6 +179,11 @@ class JournalSummaryRequest(BaseModel):
                     data["profile_summary"] = data.get(key)
                     break
         return data
+
+class JournalTradeParseRequest(BaseModel):
+    text: str = Field(default="", max_length=8000)
+    timezone: str | None = Field(default=None, max_length=80)
+    default_date: str | None = Field(default=None, max_length=20)
 
 class TradeDatasetExportRequest(BaseModel):
     trades: List[dict] = Field(default_factory=list)
@@ -325,6 +331,26 @@ async def intelligence_journal_summary(req: JournalSummaryRequest):
         raise HTTPException(
             status_code=500,
             detail="Journal summary failed. Please try again."
+        )
+
+
+@app.post("/api/journal/parse-trades")
+async def journal_parse_trades(req: JournalTradeParseRequest):
+    """
+    Parse natural-language trade descriptions into structured journal rows.
+    Gemini stays server-side and falls back safely when unavailable.
+    """
+    try:
+        return parse_trade_entries(
+            req.text,
+            timezone=req.timezone,
+            default_date=req.default_date,
+        )
+    except Exception as e:
+        logger.error(f"Journal trade parser error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Journal trade parser failed. Please try again."
         )
 
 

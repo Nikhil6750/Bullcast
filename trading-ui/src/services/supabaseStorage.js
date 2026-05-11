@@ -65,6 +65,7 @@ export function getSupabasePersistenceDiagnostic() {
     isAuthenticated: lastStorageDiagnostic?.signedIn ?? false,
     userIdPresent: lastStorageDiagnostic?.userIdPresent ?? false,
     currentUserId: lastStorageDiagnostic?.currentUserId ?? null,
+    currentUserEmail: lastStorageDiagnostic?.currentUserEmail ?? null,
     lastSaveTarget: lastStorageDiagnostic?.lastSaveTarget ?? null,
     lastSaveAction: lastStorageDiagnostic?.lastSaveAction ?? null,
     lastSaveErrorMessage: null,
@@ -104,6 +105,7 @@ export function getInitialStorageStatus(overrides = {}) {
     isAuthenticated: false,
     userIdPresent: false,
     currentUserId: null,
+    currentUserEmail: null,
     lastSaveTarget: null,
     lastSaveAction: null,
     lastSaveErrorMessage: null,
@@ -230,6 +232,7 @@ function logPersistenceStatus(status) {
     storageMode: status.storageMode,
     isAuthenticated: status.isAuthenticated,
     userIdPresent: status.userIdPresent,
+    currentUserEmail: status.currentUserEmail,
     lastSaveTarget: status.lastSaveTarget,
     lastSaveAction: status.lastSaveAction,
     lastSaveErrorMessage: status.lastSaveErrorMessage,
@@ -289,6 +292,7 @@ function createStorageResult({
   trades = null,
   signedIn = false,
   userId = null,
+  userEmail = null,
   localDemoMode = mode === STORAGE_MODES.local && isSupabasePersistenceConfigured(),
 }) {
   const errorMessage = safeErrorMessage(error)
@@ -305,6 +309,7 @@ function createStorageResult({
     isAuthenticated: signedIn,
     userIdPresent: Boolean(userId),
     currentUserId: userId ? String(userId) : lastStorageDiagnostic?.currentUserId ?? null,
+    currentUserEmail: userEmail ? String(userEmail) : lastStorageDiagnostic?.currentUserEmail ?? null,
     lastSaveTarget: isSave ? mode : lastStorageDiagnostic?.lastSaveTarget ?? null,
     lastSaveAction: isSave ? action : lastStorageDiagnostic?.lastSaveAction ?? null,
     lastSaveErrorMessage: isSave ? errorMessage : lastStorageDiagnostic?.lastSaveErrorMessage ?? null,
@@ -359,6 +364,7 @@ function createStorageResult({
     signedIn: status.signedIn,
     userIdPresent: status.userIdPresent,
     currentUserId: status.currentUserId,
+    currentUserEmail: status.currentUserEmail,
     localDemoMode: status.localDemoMode,
   }
   logPersistenceStatus(status)
@@ -554,6 +560,7 @@ export async function loadJournalTradesFromStorage() {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     const localTrades = readLocalJournalTrades()
     return createStorageResult({
@@ -562,6 +569,7 @@ export async function loadJournalTradesFromStorage() {
       loadedRowCount: localTrades.length,
       trades: localTrades,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -583,19 +591,89 @@ export async function loadJournalTradesFromStorage() {
       trades,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
-    const localTrades = readLocalJournalTrades()
     return createStorageResult({
-      mode: STORAGE_MODES.local,
+      mode: STORAGE_MODES.supabase,
+      ok: false,
       error,
-      action: 'load journal_trades fallback',
-      loadedRowCount: localTrades.length,
-      trades: localTrades,
+      action: 'load journal_trades',
+      loadedRowCount: 0,
+      trades: [],
       signedIn: true,
       userId,
+      userEmail,
+      localDemoMode: false,
+    })
+  }
+}
+
+export async function loadJournalTradeByIdFromSupabase(id) {
+  const targetId = String(id || '').trim()
+  const client = getSupabaseClient()
+  if (!client) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error: new Error('Supabase is not configured.'),
+      action: 'load journal_trade exact',
+      loadedRowCount: 0,
+      trades: [],
+    })
+  }
+
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
+  if (!userId) {
+    return createStorageResult({
+      mode: STORAGE_MODES.local,
+      ok: false,
+      error: new Error('Sign in is required to load the saved Supabase journal trade.'),
+      action: 'load journal_trade exact local demo',
+      loadedRowCount: 0,
+      trades: [],
+      signedIn: false,
+      userEmail,
       localDemoMode: true,
+    })
+  }
+
+  try {
+    const response = await client
+      .from('journal_trades')
+      .select('*')
+      .eq('id', targetId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (response.error) throw response.error
+
+    const trade = response.data ? fromJournalTradeRow(response.data) : null
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      action: 'load journal_trade exact',
+      loadedRowCount: trade ? 1 : 0,
+      trades: trade ? [trade] : [],
+      signedIn: true,
+      userId,
+      userEmail,
+      localDemoMode: false,
+    })
+  } catch (error) {
+    return createStorageResult({
+      mode: STORAGE_MODES.supabase,
+      ok: false,
+      error,
+      action: 'load journal_trade exact',
+      loadedRowCount: 0,
+      trades: [],
+      signedIn: true,
+      userId,
+      userEmail,
+      localDemoMode: false,
     })
   }
 }
@@ -616,6 +694,7 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     const localSaved = writeStorage(STORAGE_KEYS.journal, safeTrades)
     return createStorageResult({
@@ -625,6 +704,7 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       rowsAttempted: safeTrades.length,
       rowsSaved: localSaved ? safeTrades.length : 0,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -659,14 +739,14 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       trades: savedTrades,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
-    const localSaved = options.fallbackToLocal === false
-      ? false
-      : writeStorage(STORAGE_KEYS.journal, safeTrades)
+    const fallbackDisabled = options.fallbackToLocal === false
+    const localSaved = fallbackDisabled ? false : writeStorage(STORAGE_KEYS.journal, safeTrades)
     return createStorageResult({
-      mode: STORAGE_MODES.local,
+      mode: fallbackDisabled ? STORAGE_MODES.supabase : STORAGE_MODES.local,
       ok: localSaved,
       error,
       action: 'save journal_trades fallback',
@@ -674,7 +754,8 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
       rowsSaved: localSaved ? safeTrades.length : 0,
       signedIn: true,
       userId,
-      localDemoMode: true,
+      userEmail,
+      localDemoMode: !fallbackDisabled,
     })
   }
 }
@@ -702,6 +783,7 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     const localSaved = writeStorage(STORAGE_KEYS.journal, localTrades)
     return createStorageResult({
@@ -712,6 +794,7 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       rowsSaved: localSaved ? localTrades.length : 0,
       trades: localTrades,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
       saveStartedAt,
       saveSymbol: trade?.symbol ?? null,
@@ -767,6 +850,7 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       trades: [savedTrade],
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
       saveStartedAt,
       saveTradeId: savedTrade.id,
@@ -780,11 +864,10 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       postSaveVisibleInTable: false,
     })
   } catch (error) {
-    const localSaved = options.fallbackToLocal === false
-      ? false
-      : writeStorage(STORAGE_KEYS.journal, localTrades)
+    const fallbackDisabled = options.fallbackToLocal === false
+    const localSaved = fallbackDisabled ? false : writeStorage(STORAGE_KEYS.journal, localTrades)
     return createStorageResult({
-      mode: STORAGE_MODES.local,
+      mode: fallbackDisabled ? STORAGE_MODES.supabase : STORAGE_MODES.local,
       ok: localSaved,
       error,
       action: `${action} fallback`,
@@ -795,7 +878,8 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       trades: localSaved ? localTrades : null,
       signedIn: true,
       userId,
-      localDemoMode: true,
+      userEmail,
+      localDemoMode: !fallbackDisabled,
       saveStartedAt,
       saveTradeId: row?.id ?? null,
       saveSymbol: row?.symbol ?? trade?.symbol ?? null,
@@ -823,6 +907,7 @@ export async function clearSupabaseJournalTrades() {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     return createStorageResult({
       mode: STORAGE_MODES.local,
@@ -830,6 +915,7 @@ export async function clearSupabaseJournalTrades() {
       error: new Error('Sign in is required to clear Supabase journal data.'),
       action: 'clear journal_trades local demo',
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -850,6 +936,7 @@ export async function clearSupabaseJournalTrades() {
       trades: [],
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
@@ -860,6 +947,7 @@ export async function clearSupabaseJournalTrades() {
       action: 'clear journal_trades fallback',
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -878,6 +966,7 @@ export async function deleteJournalTradeFromStorage(id) {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     return createStorageResult({
       mode: STORAGE_MODES.local,
@@ -885,6 +974,7 @@ export async function deleteJournalTradeFromStorage(id) {
       rowsAttempted: 1,
       rowsSaved: 1,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -907,6 +997,7 @@ export async function deleteJournalTradeFromStorage(id) {
       rowsSaved: 1,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
@@ -918,6 +1009,7 @@ export async function deleteJournalTradeFromStorage(id) {
       rowsAttempted: 1,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -938,6 +1030,7 @@ export async function saveTraderProfileToStorage(profile) {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     return createStorageResult({
       mode: STORAGE_MODES.local,
@@ -946,6 +1039,7 @@ export async function saveTraderProfileToStorage(profile) {
       rowsAttempted: profile ? 1 : 0,
       rowsSaved: localSaved && profile ? 1 : 0,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -962,6 +1056,7 @@ export async function saveTraderProfileToStorage(profile) {
       rowsSaved: 1,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
@@ -974,6 +1069,7 @@ export async function saveTraderProfileToStorage(profile) {
       rowsSaved: localSaved ? 1 : 0,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -994,6 +1090,7 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
 
   const session = await getCurrentSupabaseSession()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email ?? null
   if (!userId) {
     return createStorageResult({
       mode: STORAGE_MODES.local,
@@ -1002,6 +1099,7 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       rowsSaved: 1,
       history: localHistory,
       signedIn: false,
+      userEmail,
       localDemoMode: true,
     })
   }
@@ -1020,6 +1118,7 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       history: localHistory,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: false,
     })
   } catch (error) {
@@ -1032,6 +1131,7 @@ export async function appendAnalysisHistoryToStorage(entry, limit = 25) {
       history: localHistory,
       signedIn: true,
       userId,
+      userEmail,
       localDemoMode: true,
     })
   }

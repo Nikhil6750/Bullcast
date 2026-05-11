@@ -146,6 +146,12 @@ export const exportTradeDataset = (trades, options = {}) =>
     })
   })
 
+export const parseJournalTrades = ({ text, timezone, default_date }) =>
+  _request('/api/journal/parse-trades', {
+    method: 'POST',
+    body: JSON.stringify({ text, timezone, default_date })
+  })
+
 export const getTrainingReport = () =>
   _request('/api/ml/training-report')
 
