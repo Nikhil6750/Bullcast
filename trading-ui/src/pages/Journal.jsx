@@ -202,6 +202,7 @@ function normalizeTrade(trade, index = null) {
   const normalized = {
     id: String(trade?.id || `${symbol || "TRADE"}-${trade?.date || Date.now()}-${index ?? Date.now()}`),
     user_id: trade?.user_id ?? null,
+    created_at: trade?.created_at || null,
     date: String(trade?.date || new Date().toISOString().split("T")[0]),
     symbol,
     asset_type: assetType,
@@ -801,7 +802,7 @@ export default function Journal() {
   const [showModal, setShowModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
-  const [sortCol, setSortCol] = useState("date");
+  const [sortCol, setSortCol] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(0);
   const [importing, setImporting] = useState(false);
@@ -994,10 +995,14 @@ export default function Journal() {
           lastSaveErrorMessage: saveResult.lastSaveErrorMessage,
           lastInsertedRowCount: saveResult.lastInsertedRowCount,
           returnedRowCount: saveResult.returnedRowCount,
+          lastReturnedRowIds: saveResult.lastReturnedRowIds,
+          lastReloadAfterSaveCount: loadedTrades.length,
         });
         suppressNextSaveRef.current = true;
         tradesRef.current = loadedTrades;
         setTrades(loadedTrades);
+        setSortCol("created_at");
+        setSortDir("desc");
         setPage(0);
       } else if (saveResult.lastSaveErrorMessage) {
         suppressNextSaveRef.current = true;
@@ -1260,16 +1265,31 @@ export default function Journal() {
       setSortDir(d => d === "asc" ? "desc" : "asc");
     } else {
       setSortCol(col);
-      setSortDir(col === "date" ? "desc" : "asc");
+      setSortDir(col === "date" || col === "created_at" ? "desc" : "asc");
     }
   };
 
   const sorted = useMemo(() => {
     const arr = [...trades];
     const dir = sortDir === "asc" ? 1 : -1;
+    const createdAtValue = (trade) => {
+      const value = Date.parse(trade?.created_at || "");
+      return Number.isFinite(value) ? value : 0;
+    };
     arr.sort((a, b) => {
       switch (sortCol) {
-        case "date": return a.date.localeCompare(b.date) * dir;
+        case "created_at":
+          return (
+            (createdAtValue(a) - createdAtValue(b)) ||
+            a.date.localeCompare(b.date) ||
+            a.symbol.localeCompare(b.symbol)
+          ) * dir;
+        case "date":
+          return (
+            a.date.localeCompare(b.date) ||
+            (createdAtValue(a) - createdAtValue(b)) ||
+            a.symbol.localeCompare(b.symbol)
+          ) * dir;
         case "symbol": return a.symbol.localeCompare(b.symbol) * dir;
         case "pnl": return ((Number(a.pnl) || 0) - (Number(b.pnl) || 0)) * dir;
         case "result": return a.result.localeCompare(b.result) * dir;
@@ -1795,14 +1815,18 @@ function StorageDebugStatus({ status }) {
   const items = [
     ["isAuthenticated", String(status.isAuthenticated === true || status.signedIn === true)],
     ["userId present", String(status.userIdPresent === true)],
+    ["currentUserId", status.currentUserId || "null"],
     ["storageMode", status.storageMode || status.mode || "local"],
     ["lastLoadTarget", status.lastLoadTarget || "null"],
+    ["lastLoadErrorMessage", status.lastLoadErrorMessage || "null"],
     ["loadedRowCount", status.loadedRowCount ?? 0],
     ["lastSaveTarget", status.lastSaveTarget || "null"],
     ["lastSaveAction", status.lastSaveAction || "null"],
     ["lastSaveErrorMessage", status.lastSaveErrorMessage || "null"],
     ["lastInsertedRowCount", status.lastInsertedRowCount ?? status.returnedRowCount ?? 0],
     ["returnedRowCount", status.returnedRowCount ?? 0],
+    ["lastReturnedRowIds", Array.isArray(status.lastReturnedRowIds) ? status.lastReturnedRowIds.join(", ") || "none" : "none"],
+    ["lastReloadAfterSaveCount", status.lastReloadAfterSaveCount ?? 0],
     ["supabaseConfigured", String(status.supabaseConfigured === true)],
   ];
 
