@@ -231,6 +231,25 @@ function normalizeTrade(trade, index = null) {
   return normalized;
 }
 
+function createdAtValue(trade) {
+  const value = Date.parse(trade?.created_at || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
+function mergeVerifiedTradeAtTop(existingTrades, verifiedTrade, previousId = null) {
+  const normalizedVerified = normalizeTrade(verifiedTrade);
+  const verifiedId = String(normalizedVerified.id);
+  const oldId = previousId ? String(previousId) : null;
+  const rest = existingTrades
+    .map((trade, index) => normalizeTrade(trade, index))
+    .filter(trade => String(trade.id) !== verifiedId && (!oldId || String(trade.id) !== oldId));
+  return [normalizedVerified, ...rest].sort((a, b) => (
+    (createdAtValue(b) - createdAtValue(a)) ||
+    b.date.localeCompare(a.date) ||
+    a.symbol.localeCompare(b.symbol)
+  ));
+}
+
 function readLocalJournalRows() {
   try {
     const parsed = readStorage(STORAGE_KEY, []);
@@ -809,6 +828,7 @@ export default function Journal() {
   const [loadingJournal, setLoadingJournal] = useState(() => isSupabasePersistenceConfigured());
   const [clearingDataset, setClearingDataset] = useState(false);
   const [savingTrade, setSavingTrade] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(null);
   const [importSummary, setImportSummary] = useState(null);
   const [clearSummary, setClearSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
@@ -964,63 +984,122 @@ export default function Journal() {
   const saveTrade = useCallback(async (trade) => {
     const normalized = normalizeTrade(trade);
     const isEditing = Boolean(editingTrade);
+    const signedInSave = storageMode === "supabase" || storageStatus?.signedIn === true || storageStatus?.isAuthenticated === true;
     const currentTrades = tradesRef.current.map((current, index) => normalizeTrade(current, index));
     const nextTrades = isEditing
       ? currentTrades.map(t => t.id === normalized.id ? normalized : t)
       : [normalized, ...currentTrades];
 
-    suppressNextSaveRef.current = true;
-    tradesRef.current = nextTrades;
-    setTrades(nextTrades);
+    if (!signedInSave) {
+      suppressNextSaveRef.current = true;
+      tradesRef.current = nextTrades;
+      setTrades(nextTrades);
+    }
     setShowModal(false);
     setEditingTrade(null);
+    setSaveNotice(null);
 
     setSavingTrade(true);
+    const saveStartedAt = new Date().toISOString();
+    setStorageStatus(prev => ({
+      ...(prev || getSupabasePersistenceDiagnostic()),
+      saveStartedAt,
+      saveTradeId: normalized.id,
+      saveSymbol: normalized.symbol,
+      saveMode: signedInSave ? "supabase" : "local",
+      saveStep: "inserting",
+      supabaseInsertStatus: null,
+      verifySelectStatus: null,
+      verifiedRowFound: false,
+      verifiedRowUserIdMatches: false,
+      postSaveVisibleInTable: false,
+      lastSaveErrorMessage: null,
+      currentPage: page + 1,
+      sortField: sortCol,
+      sortDirection: sortDir,
+    }));
     try {
       const saveResult = await saveJournalTradeToStorage(normalized, {
         action: isEditing ? "update_trade" : "add_trade",
         localTrades: nextTrades,
+        fallbackToLocal: !signedInSave,
       });
       setStorageMode(saveResult.mode);
       setStorageStatus(saveResult);
 
       if (saveResult.mode === "supabase") {
-        const loadResult = await loadJournalTradesFromStorage();
-        const loadedTrades = (loadResult.trades || []).map((loadedTrade, index) => normalizeTrade(loadedTrade, index));
-        setStorageMode(loadResult.mode);
+        const verifiedTrade = normalizeTrade(saveResult.trades?.[0] || normalized);
+        const previousId = isEditing ? editingTrade?.id : normalized.id;
+        const mergedTrades = mergeVerifiedTradeAtTop(currentTrades, verifiedTrade, previousId);
+        const postSaveVisibleInTable = mergedTrades.slice(0, JOURNAL_PAGE_SIZE).some(t => t.id === verifiedTrade.id);
+        suppressNextSaveRef.current = true;
+        tradesRef.current = mergedTrades;
+        setTrades(mergedTrades);
+        setSortCol("created_at");
+        setSortDir("desc");
+        setPage(0);
         setStorageStatus({
-          ...loadResult,
+          ...saveResult,
           lastSaveTarget: saveResult.lastSaveTarget,
           lastSaveAction: saveResult.lastSaveAction,
           lastSaveErrorMessage: saveResult.lastSaveErrorMessage,
           lastInsertedRowCount: saveResult.lastInsertedRowCount,
           returnedRowCount: saveResult.returnedRowCount,
           lastReturnedRowIds: saveResult.lastReturnedRowIds,
-          lastReloadAfterSaveCount: loadedTrades.length,
+          lastReloadAfterSaveCount: mergedTrades.length,
+          saveStep: postSaveVisibleInTable ? "success" : "failed",
+          verifiedRowFound: saveResult.verifiedRowFound === true,
+          verifiedRowUserIdMatches: saveResult.verifiedRowUserIdMatches === true,
+          postSaveVisibleInTable,
+          currentPage: 1,
+          sortField: "created_at",
+          sortDirection: "desc",
         });
-        suppressNextSaveRef.current = true;
-        tradesRef.current = loadedTrades;
-        setTrades(loadedTrades);
-        setSortCol("created_at");
-        setSortDir("desc");
-        setPage(0);
+        setSaveNotice({
+          type: postSaveVisibleInTable ? "success" : "error",
+          message: postSaveVisibleInTable
+            ? "Saved to Supabase and verified."
+            : "Save failed. Trade was not verified in Supabase.",
+        });
       } else if (saveResult.lastSaveErrorMessage) {
-        suppressNextSaveRef.current = true;
-        tradesRef.current = nextTrades;
-        setTrades(nextTrades);
+        if (!signedInSave) {
+          suppressNextSaveRef.current = true;
+          tradesRef.current = nextTrades;
+          setTrades(nextTrades);
+        }
+        setSaveNotice({
+          type: "error",
+          message: `Save failed. Trade was not verified in Supabase. ${saveResult.lastSaveErrorMessage}`,
+        });
       }
     } catch (error) {
+      const message = error?.message || String(error);
       setStorageStatus(prev => ({
         ...(prev || getSupabasePersistenceDiagnostic()),
         ok: false,
         lastSaveTarget: storageMode,
         lastSaveAction: isEditing ? "update_trade" : "add_trade",
-        lastSaveErrorMessage: error?.message || String(error),
+        lastSaveErrorMessage: message,
+        saveStartedAt,
+        saveTradeId: normalized.id,
+        saveSymbol: normalized.symbol,
+        saveMode: signedInSave ? "supabase" : "local",
+        saveStep: "failed",
+        verifiedRowFound: false,
+        verifiedRowUserIdMatches: false,
+        postSaveVisibleInTable: false,
+        currentPage: page + 1,
+        sortField: sortCol,
+        sortDirection: sortDir,
       }));
+      setSaveNotice({
+        type: "error",
+        message: `Save failed. Trade was not verified in Supabase. ${message}`,
+      });
     } finally {
       setSavingTrade(false);
     }
-  }, [editingTrade, storageMode]);
+  }, [editingTrade, page, sortCol, sortDir, storageMode, storageStatus]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -1369,6 +1448,21 @@ export default function Journal() {
               lineHeight: 1.5,
             }}>
               Local demo mode uses this browser only. Sign in to enable Supabase cloud sync.
+            </div>
+          )}
+          {saveNotice && (
+            <div style={{
+              marginTop: 8,
+              padding: "8px 10px",
+              borderRadius: 4,
+              border: saveNotice.type === "success" ? "1px solid rgba(0,255,135,0.22)" : "1px solid rgba(255,184,77,0.28)",
+              background: saveNotice.type === "success" ? "rgba(0,255,135,0.06)" : "rgba(255,184,77,0.08)",
+              color: saveNotice.type === "success" ? "#00FF87" : "#FFB84D",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.68rem",
+              lineHeight: 1.5,
+            }}>
+              {saveNotice.message}
             </div>
           )}
         </div>
@@ -1827,6 +1921,19 @@ function StorageDebugStatus({ status }) {
     ["returnedRowCount", status.returnedRowCount ?? 0],
     ["lastReturnedRowIds", Array.isArray(status.lastReturnedRowIds) ? status.lastReturnedRowIds.join(", ") || "none" : "none"],
     ["lastReloadAfterSaveCount", status.lastReloadAfterSaveCount ?? 0],
+    ["saveStartedAt", status.saveStartedAt || "null"],
+    ["saveTradeId", status.saveTradeId || "null"],
+    ["saveSymbol", status.saveSymbol || "null"],
+    ["saveMode", status.saveMode || "null"],
+    ["saveStep", status.saveStep || "idle"],
+    ["supabaseInsertStatus", status.supabaseInsertStatus ?? "null"],
+    ["verifySelectStatus", status.verifySelectStatus ?? "null"],
+    ["verifiedRowFound", String(status.verifiedRowFound === true)],
+    ["verifiedRowUserIdMatches", String(status.verifiedRowUserIdMatches === true)],
+    ["postSaveVisibleInTable", String(status.postSaveVisibleInTable === true)],
+    ["currentPage", status.currentPage ?? "null"],
+    ["sortField", status.sortField || "null"],
+    ["sortDirection", status.sortDirection || "null"],
     ["supabaseConfigured", String(status.supabaseConfigured === true)],
   ];
 

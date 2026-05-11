@@ -75,6 +75,16 @@ export function getSupabasePersistenceDiagnostic() {
     lastLoadErrorMessage: lastStorageDiagnostic?.lastLoadErrorMessage ?? null,
     loadedRowCount: lastStorageDiagnostic?.loadedRowCount ?? 0,
     lastReloadAfterSaveCount: lastStorageDiagnostic?.lastReloadAfterSaveCount ?? 0,
+    saveStartedAt: lastStorageDiagnostic?.saveStartedAt ?? null,
+    saveTradeId: lastStorageDiagnostic?.saveTradeId ?? null,
+    saveSymbol: lastStorageDiagnostic?.saveSymbol ?? null,
+    saveMode: lastStorageDiagnostic?.saveMode ?? null,
+    saveStep: lastStorageDiagnostic?.saveStep ?? 'idle',
+    supabaseInsertStatus: lastStorageDiagnostic?.supabaseInsertStatus ?? null,
+    verifySelectStatus: lastStorageDiagnostic?.verifySelectStatus ?? null,
+    verifiedRowFound: lastStorageDiagnostic?.verifiedRowFound ?? false,
+    verifiedRowUserIdMatches: lastStorageDiagnostic?.verifiedRowUserIdMatches ?? false,
+    postSaveVisibleInTable: lastStorageDiagnostic?.postSaveVisibleInTable ?? false,
     signedIn: lastStorageDiagnostic?.signedIn ?? false,
     localDemoMode: lastStorageDiagnostic?.localDemoMode ?? isSupabasePersistenceConfigured(),
     authRequiredForCloudSync: isSupabasePersistenceConfigured() && !(lastStorageDiagnostic?.signedIn ?? false),
@@ -104,6 +114,16 @@ export function getInitialStorageStatus(overrides = {}) {
     lastLoadErrorMessage: null,
     loadedRowCount: 0,
     lastReloadAfterSaveCount: 0,
+    saveStartedAt: null,
+    saveTradeId: null,
+    saveSymbol: null,
+    saveMode: null,
+    saveStep: 'idle',
+    supabaseInsertStatus: null,
+    verifySelectStatus: null,
+    verifiedRowFound: false,
+    verifiedRowUserIdMatches: false,
+    postSaveVisibleInTable: false,
     signedIn: false,
     localDemoMode: isSupabasePersistenceConfigured(),
     authRequiredForCloudSync: isSupabasePersistenceConfigured(),
@@ -220,6 +240,16 @@ function logPersistenceStatus(status) {
     lastLoadErrorMessage: status.lastLoadErrorMessage,
     loadedRowCount: status.loadedRowCount,
     lastReloadAfterSaveCount: status.lastReloadAfterSaveCount,
+    saveStartedAt: status.saveStartedAt,
+    saveTradeId: status.saveTradeId,
+    saveSymbol: status.saveSymbol,
+    saveMode: status.saveMode,
+    saveStep: status.saveStep,
+    supabaseInsertStatus: status.supabaseInsertStatus,
+    verifySelectStatus: status.verifySelectStatus,
+    verifiedRowFound: status.verifiedRowFound,
+    verifiedRowUserIdMatches: status.verifiedRowUserIdMatches,
+    postSaveVisibleInTable: status.postSaveVisibleInTable,
     signedIn: status.signedIn,
     localDemoMode: status.localDemoMode,
     action: status.action,
@@ -245,6 +275,16 @@ function createStorageResult({
   lastInsertedRowCount = null,
   loadedRowCount = null,
   lastReloadAfterSaveCount = null,
+  saveStartedAt = null,
+  saveTradeId = null,
+  saveSymbol = null,
+  saveMode = null,
+  saveStep = null,
+  supabaseInsertStatus = null,
+  verifySelectStatus = null,
+  verifiedRowFound = null,
+  verifiedRowUserIdMatches = null,
+  postSaveVisibleInTable = null,
   history = null,
   trades = null,
   signedIn = false,
@@ -277,6 +317,16 @@ function createStorageResult({
     lastLoadErrorMessage: isLoad ? errorMessage : lastStorageDiagnostic?.lastLoadErrorMessage ?? null,
     loadedRowCount: isLoad || isClear ? loadedRowCount ?? trades?.length ?? rowsSaved : lastStorageDiagnostic?.loadedRowCount ?? 0,
     lastReloadAfterSaveCount: lastReloadAfterSaveCount ?? lastStorageDiagnostic?.lastReloadAfterSaveCount ?? 0,
+    saveStartedAt: isSave ? saveStartedAt ?? lastStorageDiagnostic?.saveStartedAt ?? null : lastStorageDiagnostic?.saveStartedAt ?? null,
+    saveTradeId: isSave ? saveTradeId ?? returnedRowIds?.[0] ?? lastStorageDiagnostic?.saveTradeId ?? null : lastStorageDiagnostic?.saveTradeId ?? null,
+    saveSymbol: isSave ? saveSymbol ?? safeArray(trades)[0]?.symbol ?? lastStorageDiagnostic?.saveSymbol ?? null : lastStorageDiagnostic?.saveSymbol ?? null,
+    saveMode: isSave ? saveMode ?? mode : lastStorageDiagnostic?.saveMode ?? null,
+    saveStep: isSave ? saveStep ?? (errorMessage ? 'failed' : 'success') : lastStorageDiagnostic?.saveStep ?? 'idle',
+    supabaseInsertStatus: isSave ? supabaseInsertStatus ?? null : lastStorageDiagnostic?.supabaseInsertStatus ?? null,
+    verifySelectStatus: isSave ? verifySelectStatus ?? null : lastStorageDiagnostic?.verifySelectStatus ?? null,
+    verifiedRowFound: isSave ? Boolean(verifiedRowFound) : lastStorageDiagnostic?.verifiedRowFound ?? false,
+    verifiedRowUserIdMatches: isSave ? Boolean(verifiedRowUserIdMatches) : lastStorageDiagnostic?.verifiedRowUserIdMatches ?? false,
+    postSaveVisibleInTable: isSave ? Boolean(postSaveVisibleInTable) : lastStorageDiagnostic?.postSaveVisibleInTable ?? false,
     signedIn,
     localDemoMode,
     authRequiredForCloudSync: isSupabasePersistenceConfigured() && !signedIn,
@@ -296,6 +346,16 @@ function createStorageResult({
     lastLoadErrorMessage: status.lastLoadErrorMessage,
     loadedRowCount: status.loadedRowCount,
     lastReloadAfterSaveCount: status.lastReloadAfterSaveCount,
+    saveStartedAt: status.saveStartedAt,
+    saveTradeId: status.saveTradeId,
+    saveSymbol: status.saveSymbol,
+    saveMode: status.saveMode,
+    saveStep: status.saveStep,
+    supabaseInsertStatus: status.supabaseInsertStatus,
+    verifySelectStatus: status.verifySelectStatus,
+    verifiedRowFound: status.verifiedRowFound,
+    verifiedRowUserIdMatches: status.verifiedRowUserIdMatches,
+    postSaveVisibleInTable: status.postSaveVisibleInTable,
     signedIn: status.signedIn,
     userIdPresent: status.userIdPresent,
     currentUserId: status.currentUserId,
@@ -622,6 +682,7 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
 export async function saveJournalTradeToStorage(trade, options = {}) {
   const localTrades = safeArray(options.localTrades)
   const action = options.action || 'upsert journal_trade'
+  const saveStartedAt = new Date().toISOString()
   const client = getSupabaseClient()
   if (!client) {
     const localSaved = writeStorage(STORAGE_KEYS.journal, localTrades)
@@ -632,6 +693,10 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       rowsAttempted: localTrades.length,
       rowsSaved: localSaved ? localTrades.length : 0,
       trades: localTrades,
+      saveStartedAt,
+      saveSymbol: trade?.symbol ?? null,
+      saveMode: STORAGE_MODES.local,
+      saveStep: localSaved ? 'success' : 'failed',
     })
   }
 
@@ -648,15 +713,24 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       trades: localTrades,
       signedIn: false,
       localDemoMode: true,
+      saveStartedAt,
+      saveSymbol: trade?.symbol ?? null,
+      saveMode: STORAGE_MODES.local,
+      saveStep: localSaved ? 'success' : 'failed',
     })
   }
 
+  let row = null
+  let supabaseInsertStatus = null
+  let verifySelectStatus = null
   try {
-    const row = toJournalTradeRow(trade, userId)
-    const { data, error } = await client
+    row = toJournalTradeRow(trade, userId)
+    const insertResponse = await client
       .from('journal_trades')
       .upsert(row, { onConflict: 'id' })
       .select('*')
+    supabaseInsertStatus = insertResponse.status ?? null
+    const { data, error } = insertResponse
     if (error) throw error
 
     const savedRows = safeArray(data)
@@ -664,7 +738,24 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       throw new Error(`Supabase saved ${savedRows.length} of 1 journal rows.`)
     }
 
-    const savedTrade = fromJournalTradeRow(savedRows[0])
+    const savedId = String(savedRows[0]?.id || row.id)
+    const verifyResponse = await client
+      .from('journal_trades')
+      .select('*')
+      .eq('id', savedId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    verifySelectStatus = verifyResponse.status ?? null
+    if (verifyResponse.error) throw verifyResponse.error
+    if (!verifyResponse.data) {
+      throw new Error('Saved journal trade was not visible after Supabase verification.')
+    }
+    const verifiedRowUserIdMatches = String(verifyResponse.data.user_id || '') === String(userId)
+    if (!verifiedRowUserIdMatches) {
+      throw new Error('Saved journal trade user_id did not match the active Supabase user.')
+    }
+
+    const savedTrade = fromJournalTradeRow(verifyResponse.data)
     return createStorageResult({
       mode: STORAGE_MODES.supabase,
       action,
@@ -677,6 +768,16 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       signedIn: true,
       userId,
       localDemoMode: false,
+      saveStartedAt,
+      saveTradeId: savedTrade.id,
+      saveSymbol: savedTrade.symbol,
+      saveMode: STORAGE_MODES.supabase,
+      saveStep: 'success',
+      supabaseInsertStatus,
+      verifySelectStatus,
+      verifiedRowFound: true,
+      verifiedRowUserIdMatches,
+      postSaveVisibleInTable: false,
     })
   } catch (error) {
     const localSaved = options.fallbackToLocal === false
@@ -695,6 +796,16 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
       signedIn: true,
       userId,
       localDemoMode: true,
+      saveStartedAt,
+      saveTradeId: row?.id ?? null,
+      saveSymbol: row?.symbol ?? trade?.symbol ?? null,
+      saveMode: STORAGE_MODES.supabase,
+      saveStep: 'failed',
+      supabaseInsertStatus,
+      verifySelectStatus,
+      verifiedRowFound: false,
+      verifiedRowUserIdMatches: false,
+      postSaveVisibleInTable: false,
     })
   }
 }
