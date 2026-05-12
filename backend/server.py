@@ -127,6 +127,17 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.intelligence.mistake_summary import build_mistake_summary
 from backend.intelligence.journal_summary import build_journal_summary
 from backend.intelligence.trade_entry_parser import parse_trade_entries
+from backend.intelligence.smart_import import (
+    DETERMINISTIC_FALLBACK_ORIGIN,
+    DETERMINISTIC_FALLBACK_WARNING,
+    GEMINI_FILE_IMPORT_ORIGIN,
+    GeminiSmartImportError,
+    MAX_FILE_BYTES,
+    apply_mapping,
+    get_column_mapping,
+    mapping_warnings,
+    parse_uploaded_file,
+)
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -352,6 +363,59 @@ async def journal_parse_trades(req: JournalTradeParseRequest):
             status_code=500,
             detail="Journal trade parser failed. Please try again."
         )
+
+
+@app.post("/api/journal/import-file")
+async def journal_import_file(file: UploadFile = File(...)):
+    """
+    Use Gemini to map uploaded CSV/XLSX columns, then apply that mapping deterministically.
+    Gemini never rewrites row values; the backend maps the original file cells.
+    """
+    filename = str(file.filename or "")
+    suffix = Path(filename).suffix.lower()
+    if suffix not in {".csv", ".xlsx"}:
+        raise HTTPException(status_code=400, detail="Smart Import accepts only .csv and .xlsx files.")
+
+    file_bytes = await file.read()
+    if len(file_bytes or b"") > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="Smart Import files must be 5MB or smaller.")
+
+    try:
+        headers, rows = parse_uploaded_file(file_bytes, filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        column_mapping, used_fallback = get_column_mapping(headers, rows[:5])
+        data_origin = DETERMINISTIC_FALLBACK_ORIGIN if used_fallback else GEMINI_FILE_IMPORT_ORIGIN
+        trades = apply_mapping(rows, column_mapping, data_origin=data_origin)
+        warnings = mapping_warnings(column_mapping)
+        if used_fallback:
+            warnings = [DETERMINISTIC_FALLBACK_WARNING, *warnings]
+        return {
+            "trades": trades,
+            "column_mapping": column_mapping,
+            "warnings": warnings,
+            "provider": "gemini",
+            "llm_enabled": not used_fallback,
+        }
+    except GeminiSmartImportError as exc:
+        return {
+            "trades": [],
+            "column_mapping": {},
+            "warnings": [exc.warning],
+            "provider": "gemini",
+            "llm_enabled": False,
+        }
+    except Exception as exc:
+        logger.exception("Journal smart import failed")
+        return {
+            "trades": [],
+            "column_mapping": {},
+            "warnings": ["Gemini smart import unavailable because the import request failed."],
+            "provider": "gemini",
+            "llm_enabled": False,
+        }
 
 
 @app.post("/api/datasets/trade-export")

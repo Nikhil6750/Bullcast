@@ -152,6 +152,33 @@ export const parseJournalTrades = ({ text, timezone, default_date }) =>
     body: JSON.stringify({ text, timezone, default_date })
   })
 
+export async function importTradesFromFile(file) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const formData = new FormData()
+  formData.append("file", file)
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/journal/import-file`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Backend request timed out. Check that Bullcast backend is running and responsive.")
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
 export const getTrainingReport = () =>
   _request('/api/ml/training-report')
 

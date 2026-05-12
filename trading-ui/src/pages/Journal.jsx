@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { exportTradeDataset, parseJournalTrades } from "../services/api";
+import { exportTradeDataset, importTradesFromFile, parseJournalTrades } from "../services/api";
 import StorageStatus from "../components/StorageStatus";
 import { STORAGE_KEYS, readStorage } from "../services/storage";
 import { DEMO_ENTRY_KEY } from "../services/entryState";
@@ -410,6 +410,12 @@ function parsedTradeNeedsReview(trade) {
   return trade?.needs_review === true || parsedTradeIssues(trade).length > 0;
 }
 
+function buildColumnMappingMessages(columnMapping = {}) {
+  const entries = Object.entries(columnMapping || {});
+  if (entries.length === 0) return [];
+  return entries.map(([source, target]) => `${source} -> ${target || "unmapped"}`);
+}
+
 function parsedTradeToJournalTrade(trade) {
   const entry = parseOptionalNumber(trade?.entry);
   const exit = parseOptionalNumber(trade?.exit);
@@ -420,6 +426,8 @@ function parsedTradeToJournalTrade(trade) {
     String(trade?.notes || "").trim(),
     parsedTradeIssues(trade).includes("Missing quantity") ? "AI parse warning: missing quantity." : "",
   ].filter(Boolean).join(" ");
+
+  const sourceType = String(trade?.data_origin || trade?.source_type || "gemini_text_parse").trim().toLowerCase();
 
   return normalizeTrade({
     id: createJournalTradeId(),
@@ -443,7 +451,7 @@ function parsedTradeToJournalTrade(trade) {
     entry_reason: String(trade?.entry_reason || "").trim(),
     exit_reason: String(trade?.exit_reason || "").trim(),
     synthetic_flag: false,
-    source_type: "gemini_text_parse",
+    source_type: sourceType || "gemini_text_parse",
   });
 }
 
@@ -1035,12 +1043,18 @@ export default function Journal() {
   const [aiSaving, setAiSaving] = useState(false);
   const [aiParseSummary, setAiParseSummary] = useState(null);
   const [aiParsedTrades, setAiParsedTrades] = useState([]);
+  const [smartImporting, setSmartImporting] = useState(false);
+  const [smartImportSaving, setSmartImportSaving] = useState(false);
+  const [smartImportSummary, setSmartImportSummary] = useState(null);
+  const [smartImportRows, setSmartImportRows] = useState([]);
+  const [smartImportMapping, setSmartImportMapping] = useState({});
   const [importSummary, setImportSummary] = useState(null);
   const [clearSummary, setClearSummary] = useState(null);
   const [realExportSummary, setRealExportSummary] = useState(null);
   const [mlDatasetExporting, setMlDatasetExporting] = useState(false);
   const [mlDatasetExportSummary, setMlDatasetExportSummary] = useState(null);
   const importInputRef = useRef(null);
+  const smartImportInputRef = useRef(null);
   const tradesRef = useRef(initialJournalRef.current.trades);
   const storageHydratedRef = useRef(!isSupabasePersistenceConfigured());
   const firstAutoSaveRef = useRef(true);
@@ -1536,6 +1550,130 @@ export default function Journal() {
       setAiSaving(false);
     }
   }, [aiParsedTrades, saveTrade, storageMode, storageStatus]);
+
+  const handleSmartImportFile = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSmartImporting(true);
+    setSmartImportSummary(null);
+    setSmartImportRows([]);
+    setSmartImportMapping({});
+
+    try {
+      const result = await importTradesFromFile(file);
+      const parsedRows = Array.isArray(result?.trades) ? result.trades : [];
+      const mapping = result?.column_mapping || {};
+      const hasUsableData = parsedRows.length > 0 && Object.keys(mapping).length > 0;
+
+      if (!hasUsableData) {
+        setSmartImportSummary({
+          tone: "error",
+          title: "Smart Import Failed",
+          messages: [
+            "Import failed. No trades could be extracted from this file.",
+            ...((result?.warnings || []).map(String)),
+          ],
+        });
+        return;
+      }
+
+      const previewRows = parsedRows.map((trade, index) => ({
+        ...trade,
+        client_id: `smart-${Date.now()}-${index}`,
+        selected: parsedTradeCanSave(trade),
+        needs_review: parsedTradeNeedsReview(trade),
+      }));
+      setSmartImportRows(previewRows);
+      setSmartImportMapping(mapping);
+      const fallbackNotice = result?.llm_enabled === false
+        ? ["Column mapping was produced by deterministic fallback — Gemini was unavailable. Review mapped columns before saving."]
+        : [];
+      setSmartImportSummary({
+        tone: result?.llm_enabled === false ? "warning" : "success",
+        title: result?.llm_enabled === false ? "Deterministic Fallback Used" : "Smart Import Parsed",
+        metrics: [
+          ["Preview Rows", previewRows.length],
+          ["Needs Review", previewRows.filter(parsedTradeNeedsReview).length],
+          ["Gemini Enabled", String(result?.llm_enabled === true)],
+        ],
+        messages: [
+          ...fallbackNotice,
+          ...buildColumnMappingMessages(mapping),
+          ...((result?.warnings || []).map(String)),
+          ...previewRows.flatMap(row => parsedTradeIssues(row)).slice(0, 5),
+        ],
+      });
+    } catch (error) {
+      setSmartImportSummary({
+        tone: "error",
+        title: "Smart Import Failed",
+        messages: [String(error?.message || error || "Could not import this file.")],
+      });
+    } finally {
+      setSmartImporting(false);
+      if (smartImportInputRef.current) smartImportInputRef.current.value = "";
+    }
+  }, []);
+
+  const updateSmartImportRow = useCallback((clientId, field, value) => {
+    setSmartImportRows(prev => prev.map(row => {
+      if (row.client_id !== clientId) return row;
+      const next = { ...row, [field]: value };
+      next.needs_review = parsedTradeNeedsReview(next);
+      if (field === "selected") next.selected = value;
+      return next;
+    }));
+  }, []);
+
+  const saveSelectedSmartImportRows = useCallback(async () => {
+    const selectedRows = smartImportRows.filter(row => row.selected);
+    const validRows = selectedRows.filter(parsedTradeCanSave);
+    const blockedRows = selectedRows.length - validRows.length;
+
+    if (validRows.length === 0) {
+      setSmartImportSummary({
+        tone: "warning",
+        title: "Needs Review",
+        messages: ["Select at least one imported trade with symbol, side, and an entry or exit price before saving."],
+      });
+      return;
+    }
+
+    setSmartImportSaving(true);
+    try {
+      for (const row of validRows) {
+        await saveTrade(parsedTradeToJournalTrade(row));
+      }
+      setSmartImportRows(prev => prev.map(row => (
+        validRows.some(saved => saved.client_id === row.client_id)
+          ? { ...row, selected: false, saved: true }
+          : row
+      )));
+      setSmartImportSummary({
+        tone: blockedRows > 0 ? "warning" : "success",
+        title: "Smart Import Saved",
+        metrics: [
+          ["Saved", validRows.length],
+          ["Still Needs Review", blockedRows],
+        ],
+        messages: [
+          storageMode === "supabase" || storageStatus?.signedIn === true
+            ? "Saved to Supabase and verified."
+            : "Saved to localStorage.",
+          ...(blockedRows > 0 ? ["Some selected rows still need required fields before saving."] : []),
+        ],
+      });
+    } catch (error) {
+      setSmartImportSummary({
+        tone: "error",
+        title: "Smart Import Save Failed",
+        messages: [String(error?.message || error || "Could not save selected imported trades.")],
+      });
+    } finally {
+      setSmartImportSaving(false);
+    }
+  }, [saveTrade, smartImportRows, storageMode, storageStatus]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -2108,6 +2246,18 @@ export default function Journal() {
         onSaveSelected={saveSelectedAiTrades}
       />
 
+      <SmartImportPanel
+        inputRef={smartImportInputRef}
+        parsedTrades={smartImportRows}
+        importing={smartImporting}
+        saving={smartImportSaving}
+        summary={smartImportSummary}
+        columnMapping={smartImportMapping}
+        onFileChange={handleSmartImportFile}
+        onUpdateRow={updateSmartImportRow}
+        onSaveSelected={saveSelectedSmartImportRows}
+      />
+
       <div style={{
         marginBottom: 16,
         padding: "10px 12px",
@@ -2575,6 +2725,222 @@ function AITradeEntryPanel({
         </>
       )}
     </div>
+  );
+}
+
+function SmartImportPanel({
+  inputRef,
+  parsedTrades,
+  importing,
+  saving,
+  summary,
+  columnMapping,
+  onFileChange,
+  onUpdateRow,
+  onSaveSelected,
+}) {
+  const selectedCount = parsedTrades.filter(row => row.selected).length;
+  const mappingEntries = Object.entries(columnMapping || {});
+
+  return (
+    <div style={{
+      marginBottom: 18,
+      padding: 14,
+      background: "#0a0a0f",
+      border: "1px solid rgba(200,241,53,0.12)",
+      borderRadius: 4,
+    }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 10,
+      }}>
+        <div style={{
+          color: "#C8F135",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.68rem",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}>
+          Smart Import
+        </div>
+        <span style={{
+          color: "#555566",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.66rem",
+        }}>
+          {importing ? "Mapping columns..." : "CSV or XLSX"}
+        </span>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        onChange={onFileChange}
+        disabled={importing || saving}
+        style={{
+          width: "100%",
+          borderRadius: 4,
+          border: "1px solid rgba(200,241,53,0.14)",
+          background: "#060608",
+          color: "#e5e5e5",
+          padding: 9,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.72rem",
+          marginBottom: 10,
+        }}
+      />
+
+      {summary && (
+        <JournalActionSummary
+          tone={summary.tone}
+          title={summary.title}
+          metrics={summary.metrics || []}
+          messages={summary.messages || []}
+        />
+      )}
+
+      {mappingEntries.length > 0 && (
+        <div style={{
+          marginTop: 10,
+          marginBottom: 10,
+          padding: 10,
+          borderRadius: 4,
+          border: "1px solid rgba(200,241,53,0.08)",
+          background: "rgba(200,241,53,0.03)",
+          color: "#888899",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "0.66rem",
+          lineHeight: 1.7,
+        }}>
+          <div style={{ color: "#C8F135", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Column Mapping
+          </div>
+          {mappingEntries.map(([source, target]) => (
+            <div key={source}>{source} -&gt; {target || "unmapped"}</div>
+          ))}
+        </div>
+      )}
+
+      <ParsedTradePreviewTable
+        parsedTrades={parsedTrades}
+        saving={saving}
+        parsing={importing}
+        selectedCount={selectedCount}
+        onUpdateRow={onUpdateRow}
+        onSaveSelected={onSaveSelected}
+      />
+    </div>
+  );
+}
+
+function ParsedTradePreviewTable({
+  parsedTrades,
+  saving,
+  parsing,
+  selectedCount,
+  onUpdateRow,
+  onSaveSelected,
+}) {
+  if (parsedTrades.length === 0) return null;
+
+  return (
+    <>
+      <div style={{ overflowX: "auto", marginTop: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1180 }}>
+          <thead>
+            <tr>
+              <Th>Select</Th>
+              <Th>Status</Th>
+              <Th>Date</Th>
+              <Th>Symbol</Th>
+              <Th>Side</Th>
+              <Th>Entry</Th>
+              <Th>Exit</Th>
+              <Th>Qty</Th>
+              <Th>Setup</Th>
+              <Th>Mistake</Th>
+              <Th>Rules</Th>
+              <Th>Risk</Th>
+              <Th>Reward</Th>
+              <Th>Notes</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsedTrades.map((row) => {
+              const issues = parsedTradeIssues(row);
+              const canSave = parsedTradeCanSave(row);
+              const needsReview = parsedTradeNeedsReview(row);
+              return (
+                <tr key={row.client_id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                  <Td>
+                    <input
+                      type="checkbox"
+                      checked={row.selected === true}
+                      disabled={row.saved === true}
+                      onChange={event => onUpdateRow(row.client_id, "selected", event.target.checked)}
+                    />
+                  </Td>
+                  <Td>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 170 }}>
+                      {row.saved ? <TagBadge label="Saved" color="#00FF87" /> : null}
+                      {!row.saved && canSave && !needsReview ? <TagBadge label="Ready" color="#00FF87" /> : null}
+                      {!row.saved && needsReview ? <TagBadge label="Needs Review" color="#FFB84D" /> : null}
+                      {issues.slice(0, 2).map(issue => <TagBadge key={issue} label={issue} color="#FFB84D" />)}
+                    </div>
+                  </Td>
+                  <Td><AiCell value={row.date || ""} onChange={value => onUpdateRow(row.client_id, "date", value)} /></Td>
+                  <Td><AiCell value={row.symbol || ""} onChange={value => onUpdateRow(row.client_id, "symbol", value.toUpperCase())} /></Td>
+                  <Td>
+                    <select
+                      value={row.side || ""}
+                      onChange={event => onUpdateRow(row.client_id, "side", event.target.value)}
+                      style={aiInputStyle}
+                    >
+                      <option value="">Review</option>
+                      <option value="LONG">LONG</option>
+                      <option value="SHORT">SHORT</option>
+                    </select>
+                  </Td>
+                  <Td><AiCell value={row.entry ?? ""} onChange={value => onUpdateRow(row.client_id, "entry", value)} /></Td>
+                  <Td><AiCell value={row.exit ?? ""} onChange={value => onUpdateRow(row.client_id, "exit", value)} /></Td>
+                  <Td><AiCell value={row.quantity ?? ""} onChange={value => onUpdateRow(row.client_id, "quantity", value)} /></Td>
+                  <Td><AiCell value={row.setup_tag || row.setup || ""} onChange={value => onUpdateRow(row.client_id, "setup_tag", value)} /></Td>
+                  <Td><AiCell value={row.mistake_tag || row.mistake || "none"} onChange={value => onUpdateRow(row.client_id, "mistake_tag", value)} /></Td>
+                  <Td>
+                    <select
+                      value={row.rule_followed === true ? "true" : row.rule_followed === false ? "false" : ""}
+                      onChange={event => onUpdateRow(row.client_id, "rule_followed", event.target.value === "" ? null : event.target.value === "true")}
+                      style={aiInputStyle}
+                    >
+                      <option value="">Unknown</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </Td>
+                  <Td><AiCell value={row.planned_risk ?? ""} onChange={value => onUpdateRow(row.client_id, "planned_risk", value)} /></Td>
+                  <Td><AiCell value={row.planned_reward ?? ""} onChange={value => onUpdateRow(row.client_id, "planned_reward", value)} /></Td>
+                  <Td><AiCell value={row.notes || ""} onChange={value => onUpdateRow(row.client_id, "notes", value)} wide /></Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+        <button
+          type="button"
+          onClick={onSaveSelected}
+          disabled={saving || parsing || selectedCount === 0}
+          style={paginationButtonStyle(saving || parsing || selectedCount === 0)}
+        >
+          {saving ? "Saving..." : `Save selected trades (${selectedCount})`}
+        </button>
+      </div>
+    </>
   );
 }
 
