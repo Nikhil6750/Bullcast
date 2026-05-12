@@ -6,6 +6,15 @@ import backend.intelligence.trade_entry_parser as trade_entry_parser
 from backend.intelligence.trade_entry_parser import parse_trade_entries
 from backend.server import app
 
+AUTH_HEADERS = {"Authorization": "Bearer test-token"}
+
+
+def mock_auth(monkeypatch, user_id: str = "user-1"):
+    import backend.server as server
+
+    monkeypatch.setattr(server, "validate_supabase_jwt", lambda token: user_id)
+    server.rate_limiter.reset()
+
 
 def mock_gemini(monkeypatch, response_text: str, captured: dict | None = None):
     monkeypatch.setenv("GEMINI_API_KEY", "test-secret-key")
@@ -159,6 +168,7 @@ def test_parse_trades_does_not_keep_invented_numbers_for_incomplete_text(monkeyp
 
 
 def test_parse_trades_endpoint(monkeypatch):
+    mock_auth(monkeypatch)
     mock_gemini(
         monkeypatch,
         """
@@ -199,6 +209,7 @@ def test_parse_trades_endpoint(monkeypatch):
 
     response = client.post(
         "/api/journal/parse-trades",
+        headers=AUTH_HEADERS,
         json={
             "text": "Shorted NIFTY at 22450, covered at 22320, 2 lots. Entered because of rejection at resistance. Mistake was early exit.",
             "default_date": "2026-05-11",
@@ -210,3 +221,41 @@ def test_parse_trades_endpoint(monkeypatch):
     assert payload["trades"][0]["date"] == "2026-05-11"
     assert payload["trades"][0]["side"] == "SHORT"
     assert payload["trades"][0]["mistake_tag"] == "early_exit"
+
+
+def test_parse_trades_endpoint_rejects_input_over_2000_chars(monkeypatch):
+    mock_auth(monkeypatch)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/journal/parse-trades",
+        headers=AUTH_HEADERS,
+        json={"text": "x" * 2001},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "Input too long. Maximum 2000 characters."
+
+
+def test_parse_trades_endpoint_accepts_exactly_2000_chars(monkeypatch):
+    mock_auth(monkeypatch)
+
+    import backend.server as server
+
+    captured = {}
+
+    def fake_parse(text, timezone=None, default_date=None):
+        captured["length"] = len(text)
+        return {"trades": [], "warnings": [], "llm_enabled": False, "provider": "gemini"}
+
+    monkeypatch.setattr(server, "parse_trade_entries", fake_parse)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/journal/parse-trades",
+        headers=AUTH_HEADERS,
+        json={"text": "x" * 2000},
+    )
+
+    assert response.status_code == 200
+    assert captured["length"] == 2000

@@ -164,10 +164,10 @@ def get_column_mapping(headers: list[str], sample_rows: list[dict[str, Any]]) ->
             raise GeminiSmartImportError(INVALID_JSON_WARNING) from exc
         return _sanitize_mapping(payload, clean_headers), False
     except GeminiSmartImportError:
-        logger.exception("Gemini smart import mapping failed; using deterministic fallback")
+        logger.warning("Gemini smart import mapping failed; using deterministic fallback")
         return get_deterministic_column_mapping(clean_headers), True
     except Exception:
-        logger.exception("Gemini smart import mapping failed")
+        logger.warning("Gemini smart import mapping failed")
         return get_deterministic_column_mapping(clean_headers), True
 
 

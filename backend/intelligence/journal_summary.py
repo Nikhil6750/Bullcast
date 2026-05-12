@@ -95,7 +95,7 @@ def build_journal_summary(
             warnings=warnings,
         )
     except Exception:
-        logger.exception("Gemini journal summary request failed")
+        logger.warning("Gemini journal summary request failed")
         warnings.append(REQUEST_FAILED_WARNING)
         return _response(
             deterministic_summary=deterministic_summary,

@@ -66,7 +66,8 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(_request: Request, exc: Exception):
-    return JSONResponse(status_code=500, content={"error": str(exc)})
+    logger.error("Unhandled server error")
+    return JSONResponse(status_code=500, content={"error": "Internal server error."})
 
 
 @app.get("/health")
@@ -139,6 +140,7 @@ from backend.intelligence.smart_import import (
     parse_uploaded_file,
 )
 from backend.intelligence.journal_copilot import analyze_journal, validate_supabase_jwt
+from backend.middleware.rate_limiter import rate_limiter
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -202,6 +204,31 @@ class TradeDatasetExportRequest(BaseModel):
     include_edgar: bool = False
 
 VALID_STRATEGIES = ["sma_cross", "rsi", "macd", "bollinger", "sentiment_sma"]
+MAX_PARSE_TEXT_CHARS = 2000
+MAX_IMPORT_ROWS = 500
+
+
+def _authenticated_user_id(authorization: str | None) -> str:
+    scheme, _, token = str(authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    user_id = validate_supabase_jwt(token.strip())
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid authentication token.")
+    return user_id
+
+
+def _rate_limit_response(user_id: str, endpoint: str, limit: int, window_seconds: int) -> JSONResponse | None:
+    if rate_limiter.check(user_id, endpoint, limit, window_seconds):
+        return None
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Rate limit exceeded. Please wait before retrying.",
+            "retry_after_seconds": rate_limiter.retry_after_seconds(user_id, endpoint, window_seconds),
+        },
+    )
 
 @app.get("/api/search")
 async def search_api(q: str = "", limit: int = 8):
@@ -258,8 +285,8 @@ async def intelligence_analyze(req: AnalyzeRequest):
         trades_dicts = [t.model_dump() for t in req.trades]
         coach = TradeCoach(trades_dicts)
         return coach.get_full_analysis()
-    except Exception as e:
-        logger.error(f"Intelligence analyze error: {e}")
+    except Exception:
+        logger.error("Intelligence analyze error")
         raise HTTPException(
             status_code=500,
             detail="Analysis failed. Please try again."
@@ -281,8 +308,8 @@ async def intelligence_ask(req: AskRequest):
         trades_dicts = [t.model_dump() for t in req.trades]
         coach = TradeCoach(trades_dicts)
         return coach.answer_question(req.question.strip())
-    except Exception as e:
-        logger.error(f"Intelligence ask error: {e}")
+    except Exception:
+        logger.error("Intelligence ask error")
         raise HTTPException(
             status_code=500,
             detail="Could not answer question. Please try again."
@@ -300,8 +327,8 @@ async def intelligence_trade_analysis(req: TradeAnalysisRequest):
         candidate = req.trade.model_dump()
         coach = TradeCoach(trades_dicts)
         return coach.analyze_trade_setup(candidate)
-    except Exception as e:
-        logger.error(f"Trade setup analysis error: {e}")
+    except Exception:
+        logger.error("Trade setup analysis error")
         raise HTTPException(
             status_code=500,
             detail="Trade analysis failed. Please try again."
@@ -317,8 +344,8 @@ async def intelligence_mistake_summary(req: MistakeSummaryRequest):
     try:
         trades_dicts = [t.model_dump() for t in req.trades]
         return build_mistake_summary(trades_dicts, limit=req.limit)
-    except Exception as e:
-        logger.error(f"Mistake summary error: {e}")
+    except Exception:
+        logger.error("Mistake summary error")
         raise HTTPException(
             status_code=500,
             detail="Mistake summary failed. Please try again."
@@ -338,8 +365,8 @@ async def intelligence_journal_summary(req: JournalSummaryRequest):
             profile_summary=req.profile_summary,
             limit=req.limit,
         )
-    except Exception as e:
-        logger.error(f"Journal summary error: {e}")
+    except Exception:
+        logger.error("Journal summary error")
         raise HTTPException(
             status_code=500,
             detail="Journal summary failed. Please try again."
@@ -347,19 +374,26 @@ async def intelligence_journal_summary(req: JournalSummaryRequest):
 
 
 @app.post("/api/journal/parse-trades")
-async def journal_parse_trades(req: JournalTradeParseRequest):
+async def journal_parse_trades(req: JournalTradeParseRequest, authorization: str | None = Header(default=None)):
     """
     Parse natural-language trade descriptions into structured journal rows.
     Gemini stays server-side and falls back safely when unavailable.
     """
+    user_id = _authenticated_user_id(authorization)
+    if len(req.text or "") > MAX_PARSE_TEXT_CHARS:
+        raise HTTPException(status_code=400, detail="Input too long. Maximum 2000 characters.")
+    rate_limited = _rate_limit_response(user_id, "/api/journal/parse-trades", 20, 60)
+    if rate_limited:
+        return rate_limited
+
     try:
         return parse_trade_entries(
             req.text,
             timezone=req.timezone,
             default_date=req.default_date,
         )
-    except Exception as e:
-        logger.error(f"Journal trade parser error: {e}")
+    except Exception:
+        logger.error("Journal trade parser error")
         raise HTTPException(
             status_code=500,
             detail="Journal trade parser failed. Please try again."
@@ -367,11 +401,19 @@ async def journal_parse_trades(req: JournalTradeParseRequest):
 
 
 @app.post("/api/journal/import-file")
-async def journal_import_file(file: UploadFile = File(...)):
+async def journal_import_file(
+    file: UploadFile = File(...),
+    authorization: str | None = Header(default=None),
+):
     """
     Use Gemini to map uploaded CSV/XLSX columns, then apply that mapping deterministically.
     Gemini never rewrites row values; the backend maps the original file cells.
     """
+    user_id = _authenticated_user_id(authorization)
+    rate_limited = _rate_limit_response(user_id, "/api/journal/import-file", 10, 60)
+    if rate_limited:
+        return rate_limited
+
     filename = str(file.filename or "")
     suffix = Path(filename).suffix.lower()
     if suffix not in {".csv", ".xlsx"}:
@@ -385,6 +427,8 @@ async def journal_import_file(file: UploadFile = File(...)):
         headers, rows = parse_uploaded_file(file_bytes, filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if len(rows) > MAX_IMPORT_ROWS:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 500 rows.")
 
     try:
         column_mapping, used_fallback = get_column_mapping(headers, rows[:5])
@@ -408,8 +452,8 @@ async def journal_import_file(file: UploadFile = File(...)):
             "provider": "gemini",
             "llm_enabled": False,
         }
-    except Exception as exc:
-        logger.exception("Journal smart import failed")
+    except Exception:
+        logger.error("Journal smart import failed")
         return {
             "trades": [],
             "column_mapping": {},
@@ -427,8 +471,8 @@ async def trade_dataset_export(req: TradeDatasetExportRequest):
     """
     try:
         return build_trade_dataset(req.trades, include_edgar=req.include_edgar)
-    except Exception as e:
-        logger.error(f"Trade dataset export error: {e}")
+    except Exception:
+        logger.error("Trade dataset export error")
         raise HTTPException(
             status_code=500,
             detail="Dataset export failed. Please try again."
@@ -449,8 +493,8 @@ async def ml_training_report():
 
     try:
         report = json.loads(ML_TRAINING_REPORT_PATH.read_text(encoding="utf-8"))
-    except Exception as e:
-        logger.error(f"Training report read error: {e}")
+    except Exception:
+        logger.error("Training report read error")
         raise HTTPException(
             status_code=500,
             detail="Training report could not be read."
@@ -472,8 +516,8 @@ async def edgar_context(ticker: str):
     """
     try:
         return build_edgar_context_for_ticker(ticker)
-    except Exception as e:
-        logger.error(f"EDGAR context error: {e}")
+    except Exception:
+        logger.error("EDGAR context error")
         return {
             "ticker": str(ticker or "").upper(),
             "cik": None,
@@ -531,13 +575,10 @@ async def intelligence_journal_copilot(authorization: str | None = Header(defaul
     Read-only journal behavior analysis for the authenticated Supabase user.
     The user id is derived only from the Supabase JWT, never from request body data.
     """
-    scheme, _, token = str(authorization or "").partition(" ")
-    if scheme.lower() != "bearer" or not token.strip():
-        raise HTTPException(status_code=401, detail="Authentication required.")
-
-    user_id = validate_supabase_jwt(token.strip())
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid authentication token.")
+    user_id = _authenticated_user_id(authorization)
+    rate_limited = _rate_limit_response(user_id, "/api/intelligence/copilot", 5, 60)
+    if rate_limited:
+        return rate_limited
 
     return analyze_journal(user_id)
 

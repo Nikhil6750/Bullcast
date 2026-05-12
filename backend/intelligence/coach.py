@@ -188,7 +188,7 @@ class TradeCoach:
 
             return response.content[0].text
 
-        except Exception as e:
-            logger.error(f"LLM call failed: {e}")
+        except Exception:
+            logger.error("LLM call failed")
             return build_fallback_response(
                 question, retrieved, self.analysis)

@@ -119,7 +119,7 @@ def parse_trade_entries(
             llm_enabled=False,
         )
     except Exception:
-        logger.exception("Gemini trade parser request failed")
+        logger.warning("Gemini trade parser request failed")
         return _response(
             trades=[],
             warnings=[REQUEST_FAILED_WARNING],

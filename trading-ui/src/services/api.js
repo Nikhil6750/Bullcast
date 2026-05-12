@@ -12,8 +12,8 @@ async function _request(path, options = {}) {
 
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...options,
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
       signal: controller.signal
     })
     if (!res.ok) {
@@ -154,13 +154,14 @@ export const exportTradeDataset = (trades, options = {}) =>
     })
   })
 
-export const parseJournalTrades = ({ text, timezone, default_date }) =>
+export const parseJournalTrades = ({ text, timezone, default_date, authToken }) =>
   _request('/api/journal/parse-trades', {
     method: 'POST',
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     body: JSON.stringify({ text, timezone, default_date })
   })
 
-export async function importTradesFromFile(file) {
+export async function importTradesFromFile(file, authToken) {
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   const formData = new FormData()
@@ -169,6 +170,7 @@ export async function importTradesFromFile(file) {
   try {
     const res = await fetch(`${API_BASE_URL}/api/journal/import-file`, {
       method: "POST",
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       body: formData,
       signal: controller.signal
     })

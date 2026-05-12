@@ -10,6 +10,12 @@ const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim()
 const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
 const supabaseProjectUrl = supabaseUrl.replace(/\/+$/, '')
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+export const VALID_DATA_ORIGINS = [
+  'manual',
+  'gemini_text_parse',
+  'gemini_file_import',
+  'smart_import_deterministic_fallback',
+]
 
 let supabaseClient = null
 let lastStorageDiagnostic = null
@@ -464,6 +470,29 @@ function normalizeBoolean(value) {
   return false
 }
 
+function normalizeDataOrigin(value) {
+  const origin = String(value ?? '').trim()
+  return origin || 'manual'
+}
+
+export function validateJournalTradeForSave(row) {
+  const dataOrigin = normalizeDataOrigin(row?.data_origin)
+  if (!VALID_DATA_ORIGINS.includes(dataOrigin)) {
+    throw new Error(`Invalid data_origin value: ${dataOrigin}`)
+  }
+
+  const missingFields = []
+  if (!String(row?.symbol ?? '').trim()) missingFields.push('symbol')
+  if (row?.entry === null || row?.entry === undefined || row?.entry === '') missingFields.push('entry')
+  if (row?.exit === null || row?.exit === undefined || row?.exit === '') missingFields.push('exit')
+  if (row?.quantity === null || row?.quantity === undefined || row?.quantity === '') missingFields.push('quantity')
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+  }
+
+  return { ...row, data_origin: dataOrigin }
+}
+
 function journalTradeSeed(trade) {
   return [
     trade?.date,
@@ -513,7 +542,7 @@ function toJournalTradeRow(trade, userId = null) {
     mistake: String((trade?.mistake ?? mistakeTag) || '').trim(),
     mistake_tag: mistakeTag || 'none',
     notes: String(trade?.notes ?? trade?.note ?? ''),
-    data_origin: String(trade?.data_origin ?? trade?.source_type ?? trade?.sourceType ?? '').trim(),
+    data_origin: normalizeDataOrigin(trade?.data_origin ?? trade?.source_type ?? trade?.sourceType),
     is_synthetic: normalizeBoolean(trade?.is_synthetic ?? trade?.synthetic_flag ?? trade?.syntheticFlag),
   }
 }
@@ -710,7 +739,9 @@ export async function saveJournalTradesToStorage(trades, options = {}) {
   }
 
   try {
-    const rows = safeTrades.map((trade) => toJournalTradeRow(trade, userId))
+    const rows = safeTrades
+      .map((trade) => toJournalTradeRow(trade, userId))
+      .map(validateJournalTradeForSave)
     let savedRows = []
     if (rows.length > 0) {
       const { data, error } = await client
@@ -807,7 +838,7 @@ export async function saveJournalTradeToStorage(trade, options = {}) {
   let supabaseInsertStatus = null
   let verifySelectStatus = null
   try {
-    row = toJournalTradeRow(trade, userId)
+    row = validateJournalTradeForSave(toJournalTradeRow(trade, userId))
     const insertResponse = await client
       .from('journal_trades')
       .upsert(row, { onConflict: 'id' })

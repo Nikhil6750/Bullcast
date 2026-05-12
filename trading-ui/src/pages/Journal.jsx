@@ -1460,10 +1460,12 @@ export default function Journal() {
     setAiParsing(true);
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+      const session = await getCurrentSupabaseSession();
       const result = await parseJournalTrades({
         text,
         timezone,
         default_date: dateStamp(),
+        authToken: session?.access_token,
       });
       const parsedRows = Array.isArray(result?.trades) ? result.trades : [];
       const previewRows = parsedRows.map((trade, index) => ({
@@ -1517,7 +1519,10 @@ export default function Journal() {
       setAiParseSummary({
         tone: "warning",
         title: "Needs Review",
-        messages: ["Select at least one parsed trade with symbol, side, and an entry or exit price before saving."],
+        messages: [
+          "Select at least one parsed trade with symbol, side, and an entry or exit price before saving.",
+          ...selectedRows.flatMap(parsedTradeIssues).slice(0, 5),
+        ],
       });
       return;
     }
@@ -1561,7 +1566,8 @@ export default function Journal() {
     setSmartImportMapping({});
 
     try {
-      const result = await importTradesFromFile(file);
+      const session = await getCurrentSupabaseSession();
+      const result = await importTradesFromFile(file, session?.access_token);
       const parsedRows = Array.isArray(result?.trades) ? result.trades : [];
       const mapping = result?.column_mapping || {};
       const hasUsableData = parsedRows.length > 0 && Object.keys(mapping).length > 0;
@@ -1635,7 +1641,10 @@ export default function Journal() {
       setSmartImportSummary({
         tone: "warning",
         title: "Needs Review",
-        messages: ["Select at least one imported trade with symbol, side, and an entry or exit price before saving."],
+        messages: [
+          "Select at least one imported trade with symbol, side, and an entry or exit price before saving.",
+          ...selectedRows.flatMap(parsedTradeIssues).slice(0, 5),
+        ],
       });
       return;
     }

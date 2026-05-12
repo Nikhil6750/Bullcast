@@ -158,7 +158,7 @@ def analyze_journal(user_id: str) -> dict[str, Any]:
     try:
         trades = fetch_user_trades(user_id)
     except Exception:
-        logger.exception("Journal Copilot could not fetch user trades")
+        logger.warning("Journal Copilot could not fetch user trades")
         trades = []
 
     if not trades:
@@ -179,7 +179,7 @@ def analyze_journal(user_id: str) -> dict[str, Any]:
         result["llm_enabled"] = True
         return result
     except Exception:
-        logger.exception("Journal Copilot Gemini analysis failed")
+        logger.warning("Journal Copilot Gemini analysis failed")
         return {
             "insights": [],
             "summary": "Analysis unavailable — Gemini could not be reached. Try again shortly.",

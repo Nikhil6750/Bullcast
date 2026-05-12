@@ -18,6 +18,15 @@ from backend.intelligence.smart_import import (
 )
 from backend.server import app
 
+AUTH_HEADERS = {"Authorization": "Bearer test-token"}
+
+
+def mock_auth(monkeypatch, user_id: str = "user-1"):
+    import backend.server as server
+
+    monkeypatch.setattr(server, "validate_supabase_jwt", lambda token: user_id)
+    server.rate_limiter.reset()
+
 
 def mock_gemini(monkeypatch, response_text: str, captured: dict | None = None):
     monkeypatch.setenv("GEMINI_API_KEY", "test-secret-key")
@@ -242,6 +251,7 @@ def test_get_column_mapping_uses_fallback_when_gemini_raises(monkeypatch):
 
 
 def test_import_file_endpoint_warns_when_fallback_is_used(monkeypatch):
+    mock_auth(monkeypatch)
     mock_gemini_failure(monkeypatch)
     client = TestClient(app)
     csv_body = (
@@ -251,6 +261,7 @@ def test_import_file_endpoint_warns_when_fallback_is_used(monkeypatch):
 
     response = client.post(
         "/api/journal/import-file",
+        headers=AUTH_HEADERS,
         files={"file": ("trades.csv", csv_body, "text/csv")},
     )
 
@@ -263,6 +274,7 @@ def test_import_file_endpoint_warns_when_fallback_is_used(monkeypatch):
 
 
 def test_import_file_endpoint_uses_gemini_origin_when_gemini_succeeds(monkeypatch):
+    mock_auth(monkeypatch)
     mock_gemini(
         monkeypatch,
         """
@@ -287,6 +299,7 @@ def test_import_file_endpoint_uses_gemini_origin_when_gemini_succeeds(monkeypatc
 
     response = client.post(
         "/api/journal/import-file",
+        headers=AUTH_HEADERS,
         files={"file": ("trades.csv", csv_body, "text/csv")},
     )
 
@@ -294,3 +307,39 @@ def test_import_file_endpoint_uses_gemini_origin_when_gemini_succeeds(monkeypatc
     payload = response.json()
     assert payload["llm_enabled"] is True
     assert payload["trades"][0]["data_origin"] == GEMINI_FILE_IMPORT_ORIGIN
+
+
+def test_import_file_endpoint_rejects_more_than_500_rows(monkeypatch):
+    mock_auth(monkeypatch)
+    mock_gemini_failure(monkeypatch)
+    client = TestClient(app)
+    csv_body = "Ticker,Buy Price,Sell Price,Shares\n" + "\n".join(
+        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(501)
+    )
+
+    response = client.post(
+        "/api/journal/import-file",
+        headers=AUTH_HEADERS,
+        files={"file": ("trades.csv", csv_body, "text/csv")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "File too large. Maximum 500 rows."
+
+
+def test_import_file_endpoint_accepts_exactly_500_rows(monkeypatch):
+    mock_auth(monkeypatch)
+    mock_gemini_failure(monkeypatch)
+    client = TestClient(app)
+    csv_body = "Ticker,Buy Price,Sell Price,Shares\n" + "\n".join(
+        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(500)
+    )
+
+    response = client.post(
+        "/api/journal/import-file",
+        headers=AUTH_HEADERS,
+        files={"file": ("trades.csv", csv_body, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["trades"]) == 500
