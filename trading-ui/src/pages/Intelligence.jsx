@@ -6,6 +6,7 @@ import {
   askIntelligence,
   exportTradeDataset,
   getEdgarContext,
+  getJournalInsights,
   getTrainingReport,
   summarizeJournalMistakes,
 } from '../services/api'
@@ -1421,6 +1422,8 @@ function RagMarketContextPanel({ trades, analysis }) {
 
   return (
     <section
+      id="journal-copilot"
+      aria-label="Intelligence Journal Copilot"
       style={{
         background: '#0c0c14',
         border: '1px solid rgba(200,241,53,0.08)',
@@ -2324,6 +2327,166 @@ function MistakeSummaryPanel({ trades, summary, loading, error, onSummarize }) {
   )
 }
 
+function JournalCopilotPanel({ result, loading, error, onAnalyze }) {
+  const insights = Array.isArray(result?.insights) ? result.insights : []
+  const hasResult = Boolean(result)
+  const metadata = hasResult
+    ? `${Number(result?.trades_analyzed ?? 0)} trades analyzed${result?.data_range ? ` · ${result.data_range}` : ''}`
+    : 'Journal behavior review'
+
+  const categoryLabel = (value) => String(value || '')
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+
+  return (
+    <section
+      style={{
+        background: '#0c0c14',
+        border: '1px solid rgba(200,241,53,0.12)',
+        borderRadius: 4,
+        padding: '20px 22px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 16 }}>
+        <div>
+          <p
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.65rem',
+              color: '#C8F135',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              margin: '0 0 8px',
+            }}
+          >
+            Intelligence Journal Copilot
+          </p>
+          <div style={{ color: '#888899', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem', lineHeight: 1.6 }}>
+            Read-only behavioral analysis from your saved journal.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onAnalyze}
+          disabled={loading}
+          style={{
+            padding: '10px 16px',
+            borderRadius: 4,
+            border: '1px solid rgba(200,241,53,0.28)',
+            background: loading ? '#111120' : '#C8F135',
+            color: loading ? '#555566' : '#060608',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {loading ? 'Analyzing...' : 'Analyze My Journal'}
+        </button>
+      </div>
+
+      {loading && (
+        <div style={{ color: '#C8F135', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.74rem', marginBottom: 14 }}>
+          Analyzing journal behavior...
+        </div>
+      )}
+
+      {error && (
+        <div
+          style={{
+            padding: '12px 14px',
+            background: 'rgba(255,59,59,0.06)',
+            border: '1px solid rgba(255,59,59,0.2)',
+            borderRadius: 4,
+            color: '#FF6B6B',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.76rem',
+            marginBottom: 14,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {hasResult && (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: 4,
+              border: '1px solid rgba(200,241,53,0.08)',
+              background: 'rgba(200,241,53,0.03)',
+            }}
+          >
+            <div style={{ color: '#C8F135', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+              {metadata}
+            </div>
+            <div style={{ color: '#e5e5e5', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8rem', lineHeight: 1.7 }}>
+              {result.summary}
+            </div>
+          </div>
+
+          {insights.length > 0 && (
+            <div className="insight-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+              {insights.map((insight, index) => (
+                <article
+                  key={`${insight.category}-${index}`}
+                  style={{
+                    border: '1px solid rgba(200,241,53,0.1)',
+                    borderRadius: 4,
+                    background: '#08080d',
+                    padding: '16px 18px',
+                    display: 'grid',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ color: '#C8F135', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.66rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    {categoryLabel(insight.category)}
+                  </div>
+                  <CopilotInsightLine label="Observation" value={insight.observation} />
+                  <CopilotInsightLine label="Evidence" value={insight.evidence} />
+                  <CopilotInsightLine label="Suggestion" value={insight.suggestion} />
+                </article>
+              ))}
+            </div>
+          )}
+
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 4,
+              border: '1px solid rgba(255,184,77,0.22)',
+              background: 'rgba(255,184,77,0.06)',
+              color: '#FFB84D',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '0.76rem',
+              lineHeight: 1.6,
+            }}
+          >
+            {result.disclaimer || 'This is journal behavior analysis only. Not financial advice.'}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CopilotInsightLine({ label, value }) {
+  return (
+    <div>
+      <div style={{ color: '#555566', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ color: '#d8d8df', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.76rem', lineHeight: 1.6 }}>
+        {value || '-'}
+      </div>
+    </div>
+  )
+}
+
 function StorageModeIndicator({ mode, status }) {
   const isSupabase = mode === 'supabase'
   const label = isSupabase ? formatStorageMode(mode) : 'Local demo mode'
@@ -2374,6 +2537,9 @@ export default function Intelligence() {
   const [mistakeSummary, setMistakeSummary] = useState(null)
   const [mistakeLoading, setMistakeLoading] = useState(false)
   const [mistakeError, setMistakeError] = useState(null)
+  const [copilotResult, setCopilotResult] = useState(null)
+  const [copilotLoading, setCopilotLoading] = useState(false)
+  const [copilotError, setCopilotError] = useState(null)
 
   const inputRef = useRef(null)
 
@@ -2522,6 +2688,23 @@ export default function Intelligence() {
     }
   }
 
+  const runJournalCopilot = async () => {
+    setCopilotLoading(true)
+    setCopilotError(null)
+
+    try {
+      const session = await getCurrentSupabaseSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Missing Supabase session.')
+      const result = await getJournalInsights(token)
+      setCopilotResult(result)
+    } catch {
+      setCopilotError('Analysis could not be loaded. Please try again.')
+    } finally {
+      setCopilotLoading(false)
+    }
+  }
+
   return (
     <div
       style={{
@@ -2575,6 +2758,15 @@ export default function Intelligence() {
         >
           RAG-powered analysis of your actual trades. Patterns, insights, and answers grounded in your own journal data.
         </p>
+      </div>
+
+      <div style={{ maxWidth: 980, marginBottom: 24 }}>
+        <JournalCopilotPanel
+          result={copilotResult}
+          loading={copilotLoading}
+          error={copilotError}
+          onAnalyze={runJournalCopilot}
+        />
       </div>
 
       {trades.length === 0 && (

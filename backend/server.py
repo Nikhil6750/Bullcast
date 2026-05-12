@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Final, List
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -138,6 +138,7 @@ from backend.intelligence.smart_import import (
     mapping_warnings,
     parse_uploaded_file,
 )
+from backend.intelligence.journal_copilot import analyze_journal, validate_supabase_jwt
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -522,6 +523,23 @@ async def api_ticker():
     _ticker_cache["data"] = response
     _ticker_cache["ts"] = now
     return response
+
+
+@app.post("/api/intelligence/copilot")
+async def intelligence_journal_copilot(authorization: str | None = Header(default=None)):
+    """
+    Read-only journal behavior analysis for the authenticated Supabase user.
+    The user id is derived only from the Supabase JWT, never from request body data.
+    """
+    scheme, _, token = str(authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    user_id = validate_supabase_jwt(token.strip())
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid authentication token.")
+
+    return analyze_journal(user_id)
 
 
 # ─────────────────────────────────────────────────────

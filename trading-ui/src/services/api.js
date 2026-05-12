@@ -131,6 +131,14 @@ export const summarizeJournalMistakes = (trades, limit = 100) =>
     body: JSON.stringify({ trades, limit })
   })
 
+export const getJournalInsights = (authToken) =>
+  _request('/api/intelligence/copilot', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${authToken}`
+    }
+  })
+
 export const analyzeFutureTrade = (trades, trade) =>
   _request('/api/intelligence/trade-analysis', {
     method: 'POST',
