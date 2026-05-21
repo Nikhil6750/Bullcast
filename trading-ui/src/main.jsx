@@ -12,12 +12,13 @@ import { hasEnteredLocalDemo } from "./services/entryState";
 import "./global.css";
 import "./index.css";
 
-const StrategyBuilder = lazy(() => import("./pages/StrategyBuilder"));
-const Sentiment = lazy(() => import("./pages/Sentiment"));
+const News = lazy(() => import("./pages/News"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Intelligence = lazy(() => import("./pages/Intelligence"));
 const Login = lazy(() => import("./pages/Login"));
+const Backtest = lazy(() => import("./pages/Backtest"));
+const LiveMonitor = lazy(() => import("./pages/LiveMonitor"));
 
 const RouteNotFound = () => (
   <div className="p-6 text-white">
@@ -95,11 +96,12 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<Suspense fallback={<Fallback />}><Login /></Suspense>} />
 
         <Route element={<RequireEntry />}>
-          <Route path="/sentiment" element={<Suspense fallback={<Fallback />}><Sentiment /></Suspense>} />
+          <Route path="/news" element={<Suspense fallback={<Fallback />}><News /></Suspense>} />
           <Route path="/watchlist" element={<Suspense fallback={<Fallback />}><Watchlist /></Suspense>} />
-          <Route path="/backtest" element={<Suspense fallback={<Fallback />}><StrategyBuilder /></Suspense>} />
           <Route path="/journal" element={<Suspense fallback={<Fallback />}><Journal /></Suspense>} />
           <Route path="/intelligence" element={<Suspense fallback={<Fallback />}><Intelligence /></Suspense>} />
+          <Route path="/backtest" element={<Suspense fallback={<Fallback />}><Backtest /></Suspense>} />
+          <Route path="/live-monitor" element={<Suspense fallback={<Fallback />}><LiveMonitor /></Suspense>} />
         </Route>
 
         <Route path="*" element={<RouteNotFound />} />

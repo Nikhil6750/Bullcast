@@ -3,11 +3,12 @@ import AuthStatus from "./AuthStatus";
 import "./AppShell.css";
 
 const NAV_LINKS = [
-  { path: "/sentiment", label: "Sentiment" },
   { path: "/watchlist", label: "Watchlist" },
-  { path: "/backtest", label: "Backtest" },
   { path: "/journal", label: "Journal" },
   { path: "/intelligence", label: "Intelligence" },
+  { path: "/backtest", label: "Backtest" },
+  { path: "/live-monitor", label: "Live Monitor" },
+  { path: "/news", label: "News" },
 ];
 
 export default function AppShell({ children, user, onSignOut }) {

@@ -3,12 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
-import shutil
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any, Final, List
+from typing import Any, List
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,34 +16,30 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from backend.data_loader import CandleCSVError, load_candles_from_csv_path
 from backend.datasets import build_trade_dataset
 from backend.edgar import build_edgar_context_for_ticker
-from backend.gap_handling import generate_trades_and_setups_with_gap_resets
 from backend.intelligence.coach import TradeCoach
 from backend.journal import JournalTrade
-from backend.strategy_lab import StrategyLabError, run_strategy_lab
 
-_INVALID_FILENAME_MSG: Final[str] = "Invalid CSV filename format"
-_PAIR_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9]+$")
 logger = logging.getLogger(__name__)
-ML_TRAINING_REPORT_PATH: Final[Path] = Path(ROOT) / "backend" / "models" / "baseline_training_report.json"
 
-app = FastAPI(title="Backtest API", version="1.0.0")
+app = FastAPI(title="Bullcast API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://bullcast-ruddy.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from backend.sentiment_api import router as sentiment_router
-app.include_router(sentiment_router)
+from backend.news_api import router as news_router
+app.include_router(news_router)
 
 
 @app.exception_handler(RequestValidationError)
@@ -75,56 +68,12 @@ def health() -> dict:
     return {"ok": True}
 
 
-@app.post("/run-backtest")
-async def run_backtest(file: UploadFile = File(...)):
-    candles = await _load_uploaded_candles(file)
-
-    try:
-        trades, setups = generate_trades_and_setups_with_gap_resets(candles)
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-    return {"candles": candles, "setups": setups, "trades": trades}
-
-
-@app.post("/run-strategy")
-async def run_strategy(
-    file: UploadFile = File(...),
-    strategy_type: str = Form(...),
-    parameters_json: str = Form("{}"),
-):
-    candles = await _load_uploaded_candles(file)
-
-    try:
-        parameters = json.loads(parameters_json or "{}")
-    except Exception as exc:
-        raise HTTPException(400, "Invalid parameters JSON.") from exc
-
-    if not isinstance(parameters, dict):
-        raise HTTPException(400, "parameters_json must decode to an object.")
-
-    try:
-        # REMOVED: Pine Script endpoint/handler — feature deprecated
-        normalized_strategy_type = str(strategy_type or "").strip().lower().replace("-", " ").replace("_", " ")
-        if normalized_strategy_type in {"pine", "pine script"}:
-            raise HTTPException(400, "Pine Script is deprecated. Use Moving Average, RSI, or Breakout strategies.")
-            
-        return run_strategy_lab(
-            candles,
-            strategy_type=strategy_type,
-            parameters=parameters,
-        )
-    except StrategyLabError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(500, str(exc)) from exc
-
-
 from backend.market_data import search_symbols, list_assets, fetch_ohlcv, fetch_quote
-from backend.backtesting import run_backtest
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from backend.fflc.backtest import IST, SUPPORTED_PAIRS, get_latest_pattern, run_backtest
+from backend.fflc.alert_store import load_alerts, save_alerts
+from backend.fflc.candles import CandleFetchError, fetch_candles
+from backend.fflc.multi_backtest import run_multi_backtest
 from backend.intelligence.mistake_summary import build_mistake_summary
 from backend.intelligence.journal_summary import build_journal_summary
 from backend.intelligence.trade_entry_parser import parse_trade_entries
@@ -141,16 +90,6 @@ from backend.intelligence.smart_import import (
 )
 from backend.intelligence.journal_copilot import analyze_journal, validate_supabase_jwt
 from backend.middleware.rate_limiter import rate_limiter
-
-class BacktestRequest(BaseModel):
-    symbol: str
-    strategy: str
-    period: str = "1y"
-    interval: str = "1d"
-    initial_capital: float = 100000.0
-    commission: float = 0.001
-    slippage: float = 0.0005
-    sentiment_score: int | None = None
 
 TradeEntry = JournalTrade
 
@@ -203,9 +142,12 @@ class TradeDatasetExportRequest(BaseModel):
     trades: List[dict] = Field(default_factory=list)
     include_edgar: bool = False
 
-VALID_STRATEGIES = ["sma_cross", "rsi", "macd", "bollinger", "sentiment_sma"]
+class MultiBacktestRequest(BaseModel):
+    pairs: List[str] = Field(default_factory=list)
+    date: str | None = None
+
 MAX_PARSE_TEXT_CHARS = 2000
-MAX_IMPORT_ROWS = 500
+MAX_IMPORT_ROWS = 5000
 
 
 def _authenticated_user_id(authorization: str | None) -> str:
@@ -242,37 +184,220 @@ async def assets_api(type: str | None = None):
 async def history_api(symbol: str, period: str = "1y", interval: str = "1d"):
     return fetch_ohlcv(symbol, period, interval)
 
+@app.get("/api/market-data/ohlcv")
+async def market_data_ohlcv(symbol: str, interval: str = "5m", period: str = "30d"):
+    candles = fetch_ohlcv(symbol, period=period, interval=interval)
+    return {"symbol": symbol, "interval": interval, "candles": candles, "count": len(candles)}
+
 @app.get("/api/quote")
 async def quote_api(symbol: str):
     return fetch_quote(symbol)
 
-@app.post("/api/backtest")
-async def api_run_backtest(req: BacktestRequest):
-    if req.strategy not in VALID_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Invalid strategy: {req.strategy}")
-        
-    try:
-        records = fetch_ohlcv(req.symbol, period=req.period, interval=req.interval)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Market data error: {str(e)}")
-        
-    try:
-        result = run_backtest(
-            df_records=records,
-            strategy=req.strategy,
-            initial_capital=req.initial_capital,
-            commission=req.commission,
-            slippage=req.slippage
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Engine failure: {str(e)}")
+@app.get("/api/backtest/pairs")
+async def backtest_pairs():
+    return {"pairs": SUPPORTED_PAIRS, "count": len(SUPPORTED_PAIRS)}
 
+@app.get("/api/backtest/candles")
+async def backtest_candles(pair: str):
+    try:
+        candles = fetch_candles(pair)
+        return {"pair": pair.upper(), "count": len(candles), "candles": candles}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except CandleFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+@app.get("/api/alerts-log")
+async def alerts_log():
+    return load_alerts()
+
+@app.get("/api/backtest/run")
+async def backtest_run(pair: str, date: str | None = None, live: bool = False):
+    try:
+        result = run_backtest(pair, date, fetch_limit=100 if live else 2000)
+        save_alerts(result.get("patterns", []), pair, result.get("date") or date or "")
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except CandleFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+@app.get("/api/live-scan")
+async def live_scan(pair: str):
+    try:
+        today = datetime.now(tz=IST).date().isoformat()
+        pattern = get_latest_pattern(pair, today)
+        if pattern is None:
+            return {}
+        save_alerts([pattern], pair, today)
+        return pattern
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except CandleFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+@app.post("/api/backtest/run-multi")
+async def backtest_run_multi(req: MultiBacktestRequest):
+    try:
+        pairs = req.pairs or SUPPORTED_PAIRS
+        return run_multi_backtest(pairs, req.date)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/backtest/run-from-csv")
+async def backtest_run_from_csv(
+    pair: str = Form(...),
+    date: str = Form(...),
+    file: UploadFile = File(...),
+    use_csv_alerts: bool = Form(True),
+):
+    """Run backtest using a user-uploaded CSV file (no saved data needed)."""
+    import csv
+    import io
+    from datetime import date as date_type, datetime, time, timedelta
+    from zoneinfo import ZoneInfo
+    from backend.fflc.candles import normalize_pair
+    from backend.fflc.detector import detect_patterns
+    from backend.fflc.evaluator import evaluate_trade
+
+    IST = ZoneInfo("Asia/Kolkata")
+    SESSION_START = time(12, 50)
+    SESSION_END = time(21, 0)
+    TARGET_DAY_START = time(0, 0)
+    TARGET_DAY_END = time(23, 59, 59)
+
+    try:
+        clean_pair = normalize_pair(pair)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        target_date = date_type.fromisoformat(date.strip())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    if target_date.weekday() == 6:
+        return {
+            "pair": clean_pair, "date": target_date.isoformat(),
+            "total_setups": 0, "wins": 0, "losses": 0,
+            "setup_not_formed": 0, "pending": 0, "win_rate": 0.0,
+            "patterns": [], "candles_count": 0, "skipped": True,
+            "data_source": "upload",
+        }
+
+    try:
+        raw = await file.read()
+        content = raw.decode("utf-8", errors="replace")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Could not read uploaded file.") from exc
+
+    session_start_dt = datetime.combine(target_date, SESSION_START, tzinfo=IST)
+    target_start_dt = datetime.combine(target_date, TARGET_DAY_START, tzinfo=IST)
+    target_end_dt = datetime.combine(target_date, TARGET_DAY_END, tzinfo=IST)
+    detection_start_dt = datetime.combine(target_date - timedelta(days=1), TARGET_DAY_START, tzinfo=IST)
+    session_end_dt = datetime.combine(target_date, SESSION_END, tzinfo=IST)
+    start_ts = int(session_start_dt.timestamp())
+    target_start_ts = int(target_start_dt.timestamp())
+    target_end_ts = int(target_end_dt.timestamp())
+    detection_start_ts = int(detection_start_dt.timestamp())
+    end_ts = int(session_end_dt.timestamp())
+
+    candles = []
+    reader = csv.DictReader(io.StringIO(content))
+
+    def _get(row, *keys):
+        for key in keys:
+            for row_key, value in row.items():
+                if str(row_key or "").strip().lower() == str(key).strip().lower():
+                    return value
+        return None
+
+    def _alert_value(row):
+        try:
+            return float(_get(row, "pattern alert", "pattern_alert") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    for row in reader:
+        try:
+            ts_raw = _get(row, "time", "timestamp")
+            ts = int(float(ts_raw))
+        except (ValueError, TypeError):
+            continue
+        if detection_start_ts <= ts <= target_end_ts:
+            try:
+                candles.append({
+                    "time": ts,
+                    "open": float(_get(row, "open")),
+                    "high": float(_get(row, "high")),
+                    "low": float(_get(row, "low")),
+                    "close": float(_get(row, "close")),
+                    "pattern_alert": _alert_value(row),
+                })
+            except (TypeError, ValueError):
+                continue
+
+    candles.sort(key=lambda c: c["time"])
+
+    if len(candles) < 4:
+        return {
+            "pair": clean_pair, "date": target_date.isoformat(),
+            "total_setups": 0, "wins": 0, "losses": 0,
+            "setup_not_formed": 0, "pending": 0, "win_rate": 0.0,
+            "patterns": [], "candles_count": len(candles), "candles": candles, "skipped": False,
+            "data_source": "upload",
+        }
+
+    session_end_ts = end_ts
+    patterns = [
+        p for p in detect_patterns(candles, clean_pair)
+        if target_start_ts <= int(p["alert_timestamp"]) <= target_end_ts
+    ]
+
+    for p in patterns:
+        alert_ts = int(p["alert_timestamp"])
+        if alert_ts < start_ts or alert_ts > end_ts:
+            p["result"] = "setup_not_formed"
+            p["reason"] = "Outside trading window"
+            p["win_count"] = 0
+            continue
+
+        stop_reference = p["c1"]["open"]
+        ev = evaluate_trade(
+            candles,
+            p["direction"],
+            p["target"],
+            p["alert_candle_index"],
+            session_end_ts,
+            zone_lower=p["zone_lower"],
+            zone_upper=p["zone_upper"],
+            c1_open=stop_reference,
+        )
+        p["result"] = ev["result"]
+        p["reason"] = ev["reason"]
+        p["win_count"] = 1 if ev["result"] == "win" else 0
+
+    wins = sum(1 for p in patterns if p["result"] == "win")
+    losses = sum(1 for p in patterns if p["result"] == "loss")
+    setup_not_formed = sum(1 for p in patterns if p["result"] == "setup_not_formed")
+    pending = sum(1 for p in patterns if p["result"] == "pending")
+    closed = wins + losses
+    win_rate = round((wins / closed) * 100, 2) if closed else 0.0
+
+    return {
+        "pair": clean_pair, "date": target_date.isoformat(),
+        "total_setups": len(patterns), "wins": wins, "losses": losses,
+        "setup_not_formed": setup_not_formed, "pending": pending,
+        "win_rate": win_rate, "patterns": patterns,
+        "candles_count": len(candles), "candles": candles, "skipped": False,
+        "data_source": "upload",
+        "use_csv_alerts": False,
+        "detection_mode": "detector_two_day",
+    }
 
 # ─────────────────────────────────────────────────────
-# /api/ticker — Live prices for ticker tape
+# Trade Intelligence
 # ─────────────────────────────────────────────────────
 @app.post("/api/intelligence/analyze")
 async def intelligence_analyze(req: AnalyzeRequest):
@@ -428,7 +553,7 @@ async def journal_import_file(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if len(rows) > MAX_IMPORT_ROWS:
-        raise HTTPException(status_code=400, detail="File too large. Maximum 500 rows.")
+        raise HTTPException(status_code=400, detail="File too large. Maximum 5000 rows.")
 
     try:
         column_mapping, used_fallback = get_column_mapping(headers, rows[:5])
@@ -477,35 +602,6 @@ async def trade_dataset_export(req: TradeDatasetExportRequest):
             status_code=500,
             detail="Dataset export failed. Please try again."
         )
-
-
-@app.get("/api/ml/training-report")
-async def ml_training_report():
-    """
-    Read-only development endpoint for the latest baseline training report.
-    This does not train, load a model, or expose predictions.
-    """
-    if not ML_TRAINING_REPORT_PATH.exists():
-        return {
-            "available": False,
-            "message": "No training report found. Run baseline training first.",
-        }
-
-    try:
-        report = json.loads(ML_TRAINING_REPORT_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        logger.error("Training report read error")
-        raise HTTPException(
-            status_code=500,
-            detail="Training report could not be read."
-        )
-
-    return {
-        "available": True,
-        "dev_only": True,
-        "synthetic_warning": "DEV / SYNTHETIC TEST ONLY. Not real model performance.",
-        "report": report,
-    }
 
 
 @app.get("/api/edgar/context/{ticker}")
@@ -633,55 +729,3 @@ async def api_market_overview():
     _market_cache["data"] = response
     _market_cache["ts"] = now
     return response
-
-
-async def _load_uploaded_candles(file: UploadFile) -> list[dict]:
-    try:
-        _infer_market_pair_from_filename(file.filename)
-    except ValueError:
-        raise HTTPException(400, _INVALID_FILENAME_MSG)
-
-    try:
-        with tempfile.TemporaryDirectory(prefix="algotradex_upload_") as tmp:
-            tmp_path = Path(tmp)
-            csv_path = tmp_path / "uploaded.csv"
-            await file.seek(0)
-            with csv_path.open("wb") as out:
-                shutil.copyfileobj(file.file, out)
-            if csv_path.stat().st_size <= 0:
-                raise HTTPException(400, "Empty CSV")
-            return load_candles_from_csv_path(csv_path)
-    except CandleCSVError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(500, str(exc)) from exc
-
-
-def _infer_market_pair_from_filename(filename: str | None) -> tuple[str, str]:
-    name = Path(str(filename or "")).name
-    if not name:
-        raise ValueError(_INVALID_FILENAME_MSG)
-
-    # Require a .csv extension (case-insensitive).
-    if Path(name).suffix.lower() != ".csv":
-        raise ValueError(_INVALID_FILENAME_MSG)
-
-    stem = name[: -len(".csv")]
-
-    if stem.startswith("FX_"):
-        market = "forex"
-        rest = stem[len("FX_") :]
-    elif stem.startswith("BINANCE_"):
-        market = "crypto"
-        rest = stem[len("BINANCE_") :]
-    else:
-        raise ValueError(_INVALID_FILENAME_MSG)
-
-    pair = rest.split("_", 1)[0]
-    if not pair:
-        raise ValueError(_INVALID_FILENAME_MSG)
-    if not _PAIR_RE.match(pair):
-        raise ValueError(_INVALID_FILENAME_MSG)
-    return market, pair

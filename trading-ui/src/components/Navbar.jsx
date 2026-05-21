@@ -14,9 +14,9 @@ export default function Navbar() {
         <div className="flex flex-wrap justify-end gap-x-4 gap-y-2 font-mono text-sm uppercase tracking-wider sm:gap-x-8">
           <Link to="/sentiment" className={`py-1 transition-colors ${isActive("/sentiment")}`}>Sentiment</Link>
           <Link to="/watchlist" className={`py-1 transition-colors ${isActive("/watchlist")}`}>Watchlist</Link>
-          <Link to="/backtest" className={`py-1 transition-colors ${isActive("/backtest")}`}>Backtest</Link>
           <Link to="/journal" className={`py-1 transition-colors ${isActive("/journal")}`}>Journal</Link>
           <Link to="/intelligence" className={`py-1 transition-colors ${isActive("/intelligence")}`}>Intelligence</Link>
+          <Link to="/backtest" className={`py-1 transition-colors ${isActive("/backtest")}`}>Backtest</Link>
         </div>
         <AuthStatus />
       </div>
