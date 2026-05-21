@@ -309,12 +309,12 @@ def test_import_file_endpoint_uses_gemini_origin_when_gemini_succeeds(monkeypatc
     assert payload["trades"][0]["data_origin"] == GEMINI_FILE_IMPORT_ORIGIN
 
 
-def test_import_file_endpoint_rejects_more_than_500_rows(monkeypatch):
+def test_import_file_endpoint_rejects_more_than_5000_rows(monkeypatch):
     mock_auth(monkeypatch)
     mock_gemini_failure(monkeypatch)
     client = TestClient(app)
     csv_body = "Ticker,Buy Price,Sell Price,Shares\n" + "\n".join(
-        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(501)
+        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(5001)
     )
 
     response = client.post(
@@ -324,15 +324,15 @@ def test_import_file_endpoint_rejects_more_than_500_rows(monkeypatch):
     )
 
     assert response.status_code == 400
-    assert response.json()["error"] == "File too large. Maximum 500 rows."
+    assert response.json()["error"] == "File too large. Maximum 5000 rows."
 
 
-def test_import_file_endpoint_accepts_exactly_500_rows(monkeypatch):
+def test_import_file_endpoint_accepts_exactly_5000_rows(monkeypatch):
     mock_auth(monkeypatch)
     mock_gemini_failure(monkeypatch)
     client = TestClient(app)
     csv_body = "Ticker,Buy Price,Sell Price,Shares\n" + "\n".join(
-        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(500)
+        f"RELIANCE.NS,{2450 + i},2510,5" for i in range(5000)
     )
 
     response = client.post(
@@ -342,4 +342,4 @@ def test_import_file_endpoint_accepts_exactly_500_rows(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert len(response.json()["trades"]) == 500
+    assert len(response.json()["trades"]) == 5000

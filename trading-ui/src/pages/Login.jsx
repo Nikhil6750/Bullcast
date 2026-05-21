@@ -149,7 +149,7 @@ export default function Login({ user: userProp = null, onAuthChange }) {
             </li>
             <li>
               <span className="login-feature-dot" />
-              Backtesting &amp; analytics
+              Trade intelligence &amp; analytics
             </li>
             <li>
               <span className="login-feature-dot" />

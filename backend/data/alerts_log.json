@@ -1,0 +1,5159 @@
+[
+  {
+    "saved_at": "2026-05-21T08:52:41.858480+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:52:45.560730+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:52:49.496929+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333000,
+    "direction": "UP",
+    "target": 158.958,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:52:53.766298+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:52:57.496152+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:08.268409+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:20.471621+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:24.970414+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:28.818956+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:32.542204+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 1.84764,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:36.901286+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:43.805375+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:47.841810+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:51.665296+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:53:55.558860+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326400,
+    "direction": "DOWN",
+    "target": 0.91503,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:58:57.003583+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:01.406825+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:06.205752+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333000,
+    "direction": "UP",
+    "target": 158.958,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:10.078183+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:13.978968+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:26.126549+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:39.033778+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:43.390683+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:47.937506+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:52.364490+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 1.84764,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T08:59:56.139247+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:03.989590+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:05.187947+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:05.880750+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:09.106390+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:12.063459+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333000,
+    "direction": "UP",
+    "target": 158.958,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:15.072015+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:18.179613+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:27.224100+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:35.977447+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:39.240671+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:41.973194+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:44.966413+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 1.84764,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:47.982172+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:54.147908+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:00:57.054082+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:01:00.163901+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:01:03.130551+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:13.665837+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:17.478574+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:20.803441+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:23.679479+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:26.528086+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:34.327835+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:42.972275+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:45.911568+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:48.900279+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:51.812602+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:54.653127+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:02:59.757733+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:03:02.797361+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:03:05.763977+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:03:08.629085+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:01.266596+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:03.962979+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:06.703274+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:09.491348+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:12.301859+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:20.549580+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:28.797135+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:32.193006+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:35.526141+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:38.365461+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:41.331221+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:46.182677+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:49.834308+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:53.376756+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:05:56.733535+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:01.702474+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:05.507308+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:09.343012+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:12.204136+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:16.281749+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:25.214257+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:35.227962+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:38.294042+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:41.334720+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:44.099352+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:47.203659+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:53.176091+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:56.187666+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:10:59.275423+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:11:02.225282+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:02.630072+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:06.530951+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:10.164420+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:13.119197+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:16.187814+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:26.550248+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:36.218662+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:39.256639+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:42.309653+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:45.432113+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:49.108345+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:56.347871+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:15:59.203905+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:03.946286+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:07.721458+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:42.934845+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:46.393459+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:49.100876+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:52.217697+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:54.425419+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:16:58.068368+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:00.416848+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:01.215573+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:04.255295+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:07.158027+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:10.602888+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:14.325298+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:18.428131+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:22.357371+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:25.246253+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:28.382317+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:31.348249+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:40.256917+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:51.373128+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:54.494892+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:17:58.242993+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:01.229962+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:04.281883+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:10.271271+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:13.922329+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:17.153324+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:18:21.900016+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:02.878442+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:07.548126+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:12.728666+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:16.873103+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:20.922942+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:34.703966+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:48.670943+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:53.724692+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:20:57.999666+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:02.193625+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:05.334799+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:08.211019+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:11.338785+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:14.158089+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:21.892801+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:31.201260+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:34.192899+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:37.082607+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:39.946941+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:43.783952+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:48.678632+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:52.629508+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:55.522502+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.55984,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:21:58.447806+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:01.410693+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:04.246171+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:07.075920+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:10.204069+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:13.203403+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:22.445484+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:33.210670+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:36.232078+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:39.009856+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:41.966017+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:44.772141+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:49.462259+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:52.292731+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:55.058163+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:25:57.878801+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:01.948504+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:06.221419+05:30",
+    "pair": "GBPUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779307500,
+    "direction": "DOWN",
+    "target": 1.34395,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:10.299349+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:14.197915+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:17.331993+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:26.963911+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:36.703951+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:40.677092+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:45.432895+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:49.411402+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:30:53.833353+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:31:00.033222+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:31:03.126956+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:31:06.305114+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:31:10.131144+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:02.861291+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:09.193055+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:12.070195+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:15.112565+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:24.675245+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:26.294551+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:32.335421+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:34.316409+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:39.349460+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:45.193024+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:45.905521+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:46.672079+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:50.870687+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:35:52.099143+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:00.441927+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:05.121563+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:08.431713+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:13.659794+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:21.701241+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:24.681761+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:28.464044+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:38.624662+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:47.601343+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:50.648174+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:51.644477+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:36:57.194079+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:00.106955+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:03.247509+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:11.349812+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:22.609473+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:25.542816+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:28.282359+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:32.406191+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:35.725477+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:40.686460+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:43.833486+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:46.814400+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:37:49.592260+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:28.679492+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:35.114006+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:38.434547+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:41.669065+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:51.000307+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:38:59.828980+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 113.054,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:02.673137+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:05.602206+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:08.563951+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:11.612387+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:16.618828+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:19.418904+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:22.460629+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:39:25.284589+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:17.040633+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:23.297223+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:26.442638+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:30.358758+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:47.248020+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:56.327308+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:40:59.211687+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:02.272418+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:05.383448+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:08.453767+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:13.964808+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:16.936977+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:20.535027+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:23.827861+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:51.402376+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:41:57.433613+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:00.398414+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:04.430904+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:12.781627+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:21.722019+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:24.531564+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:27.847206+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:30.882676+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:34.584553+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:39.838579+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:42.981285+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:46.324148+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:42:49.149357+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:16.666081+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:22.688482+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:25.874083+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:28.765453+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:36.630853+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:46.466498+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:50.181117+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:53.884962+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:45:57.292575+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:46:00.307754+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:46:06.200427+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:46:16.594653+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:46:20.410350+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:46:24.436775+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:16.116887+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:22.147587+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:25.387702+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:28.047678+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:36.091271+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:45.351760+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:48.171848+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:50.867255+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:53.741399+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:50:56.409437+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:03.607304+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:07.147603+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:10.068382+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:13.655388+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:43.953596+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:50.220121+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:54.914545+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:51:58.223755+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:07.248540+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:15.900262+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:18.650309+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:22.271045+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:25.300693+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:28.100813+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:34.368500+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:37.109246+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:40.099364+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:52:43.281739+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:54:53.157406+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:54:58.831713+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:00.838422+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:06.414765+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:09.265760+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:12.157805+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:19.881554+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:29.430998+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:32.520566+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:35.283779+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:38.081446+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:41.036748+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:45.906284+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312300,
+    "direction": "DOWN",
+    "target": 201.753,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:48.771185+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:51.538513+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T09:55:55.490615+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:01.776600+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:08.168738+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:11.034016+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:13.708561+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:21.450879+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:30.093017+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:32.928188+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:35.661877+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:38.803554+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:41.361675+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:47.152914+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:50.052679+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:00:53.064001+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:02.450197+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:14.422931+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:18.687109+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:22.458204+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:26.558458+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:30.690288+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:37.530787+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:41.248830+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:44.464431+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:01:47.997489+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:09.469033+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:10.418751+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:17.450445+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:21.131931+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:24.236865+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:34.125891+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:42.918166+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:45.877551+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:48.766610+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:51.840889+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:04:54.565576+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:00.634296+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:01.294935+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:07.191458+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:10.343666+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:13.175437+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:24.592827+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:35.322465+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:38.298134+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779338100,
+    "direction": "DOWN",
+    "target": 1.88456,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:41.161055+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779338100,
+    "direction": "DOWN",
+    "target": 1.63088,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:44.372641+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:47.453784+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:53.132640+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:56.072093+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:05:59.461905+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:06:02.369930+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:02.900339+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:10.785010+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:14.417536+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:17.361579+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:24.158236+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:27.224861+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:30.207468+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:40.263706+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:49.307970+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:53.452821+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:10:57.733177+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:01.506245+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:06.005360+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:12.143404+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:15.071327+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:18.116200+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:21.020181+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:30.577838+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:36.633207+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:39.401307+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:42.112752+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:50.803438+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:11:59.298777+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:02.133108+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:04.864508+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:07.819809+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:10.637860+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:17.452405+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:20.343784+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:24.426637+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:27.342404+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:50.564803+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:56.327551+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:12:59.324779+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:02.312994+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:15.032590+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:25.700169+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779336600,
+    "direction": "UP",
+    "target": 113.173,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:28.460343+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:31.184230+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:34.387542+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:39.440829+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:45.358236+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:48.161632+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:50.993775+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:13:54.231289+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:16.512410+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:22.339037+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:25.398900+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:28.310888+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:36.106052+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:45.414770+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:48.393969+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:51.263253+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:54.193878+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:15:57.098883+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:16:02.006133+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:16:04.856853+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:16:07.815580+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:16:10.914854+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:16.604280+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:24.151255+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:27.227203+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:30.286500+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:37.966969+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:47.991377+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:50.810831+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:53.516421+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:56.566329+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:20:59.343337+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:21:04.125092+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:21:06.916554+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:21:09.643355+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:21:13.564462+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:03.948351+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:07.204050+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:10.639429+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:20.501397+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:32.328924+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:35.535737+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:39.238715+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:42.426040+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:46.471964+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:53.392228+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:22:57.272942+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:23:00.582314+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:23:04.184946+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:17.125786+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:23.134184+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:26.348960+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:29.236117+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:39.227207+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:50.317219+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:53.282516+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:56.104565+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:25:59.276742+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:26:03.149045+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:26:09.482415+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:26:13.371246+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:26:16.311405+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:26:19.376722+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:17.876355+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:25.354532+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:28.766107+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:32.468656+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:43.710941+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:54.449055+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:30:58.532717+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:02.587502+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:06.676253+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:10.449472+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:17.470422+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:21.922781+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:26.491115+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:31:30.475815+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:18.104117+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:24.405159+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:28.300879+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:31.465213+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:41.384324+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779339900,
+    "direction": "UP",
+    "target": 213.54,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:51.594013+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:55.258996+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:35:58.333527+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:01.502097+05:30",
+    "pair": "GBPCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 1.84576,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:05.417894+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:12.253617+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:15.308447+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:18.320067+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:36:21.305310+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:17.894458+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:24.700073+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:28.443815+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:32.320410+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:41.272063+05:30",
+    "pair": "GBPJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779312000,
+    "direction": "DOWN",
+    "target": 213.386,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:50.344945+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:53.400571+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:40:57.444733+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:41:04.518173+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:41:11.500038+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:41:15.967047+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:41:19.732315+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:41:23.188039+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:17.740833+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:24.656296+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:28.279695+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:31.234911+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:51.173145+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:54.209540+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:45:57.320835+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:46:03.502450+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:46:10.500235+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:46:14.365325+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:46:17.565728+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779335700,
+    "direction": "UP",
+    "target": 0.56018,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:46:21.187582+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:17.470476+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:24.207250+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:27.044631+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:30.268637+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:48.162290+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:51.324700+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:50:54.128560+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:51:00.093159+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:51:06.260119+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:51:09.855840+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:51:13.117919+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779340500,
+    "direction": "DOWN",
+    "target": 0.56065,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:51:16.067349+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:16.914253+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:22.960578+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:25.770914+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:28.825739+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:45.888298+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:49.344374+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:52.453122+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:55:59.192128+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:56:05.210364+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:56:08.321261+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:56:11.205882+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779340500,
+    "direction": "DOWN",
+    "target": 0.56065,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T10:56:14.161802+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:00:30.774286+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:00:37.171005+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:00:40.116575+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:00:43.090062+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:01.145014+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:04.139856+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:07.259843+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:14.208739+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:20.171430+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:23.177580+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:26.125265+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779340500,
+    "direction": "DOWN",
+    "target": 0.56065,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:01:29.179547+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:05:30.869078+05:30",
+    "pair": "EURUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.16322,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:05:37.091087+05:30",
+    "pair": "USDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779320400,
+    "direction": "UP",
+    "target": 158.899,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:05:40.132388+05:30",
+    "pair": "USDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "DOWN",
+    "target": 0.78662,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:05:43.009246+05:30",
+    "pair": "AUDUSD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.71117,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:05:49.070167+05:30",
+    "pair": "USDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779341700,
+    "direction": "UP",
+    "target": 1.37646,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:03.218444+05:30",
+    "pair": "AUDJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779338400,
+    "direction": "UP",
+    "target": 113.255,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:06.141182+05:30",
+    "pair": "GBPAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.88787,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:09.230492+05:30",
+    "pair": "EURAUD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "DOWN",
+    "target": 1.63369,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:15.311744+05:30",
+    "pair": "AUDCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779333300,
+    "direction": "UP",
+    "target": 0.97866,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:21.300597+05:30",
+    "pair": "CHFJPY",
+    "date": "2026-05-21",
+    "alert_time": 1779337800,
+    "direction": "UP",
+    "target": 201.982,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:24.129107+05:30",
+    "pair": "EURCAD",
+    "date": "2026-05-21",
+    "alert_time": 1779326100,
+    "direction": "UP",
+    "target": 1.59892,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:27.509641+05:30",
+    "pair": "AUDCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779340500,
+    "direction": "DOWN",
+    "target": 0.56065,
+    "result": "pending"
+  },
+  {
+    "saved_at": "2026-05-21T11:06:31.340952+05:30",
+    "pair": "EURCHF",
+    "date": "2026-05-21",
+    "alert_time": 1779333900,
+    "direction": "DOWN",
+    "target": 0.91459,
+    "result": "pending"
+  }
+]

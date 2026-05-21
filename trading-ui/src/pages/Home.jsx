@@ -147,8 +147,8 @@ export default function Home() {
             <div className="font-mono text-xs text-neutral-400 leading-relaxed uppercase">Top 20 NSE stocks tracked constantly.</div>
           </div>
           <div className="bg-card border-t-2 border-muted p-6 flex flex-col">
-            <div className="font-display text-2xl text-white tracking-widest mb-2">Backtest engine</div>
-            <div className="font-mono text-xs text-neutral-400 leading-relaxed uppercase">Test strategies against historical data.</div>
+            <div className="font-display text-2xl text-white tracking-widest mb-2">Trade intelligence</div>
+            <div className="font-mono text-xs text-neutral-400 leading-relaxed uppercase">AI-powered insights from your journal.</div>
           </div>
         </div>
       </div>

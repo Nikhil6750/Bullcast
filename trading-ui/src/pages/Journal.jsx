@@ -17,6 +17,7 @@ import {
   clearLocalJournalStorage,
   clearSupabaseJournalTrades,
   createJournalTradeId,
+  deleteJournalTrades,
   deleteJournalTradeFromStorage,
   formatStorageMode,
   getCurrentSupabaseSession,
@@ -1034,6 +1035,8 @@ export default function Journal() {
   const [loadingJournal, setLoadingJournal] = useState(() => isSupabasePersistenceConfigured());
   const [clearingDataset, setClearingDataset] = useState(false);
   const [savingTrade, setSavingTrade] = useState(false);
+  const [deletingTrades, setDeletingTrades] = useState(false);
+  const [selectedTradeIds, setSelectedTradeIds] = useState([]);
   const [saveNotice, setSaveNotice] = useState(null);
   const [lastSavedTradeId, setLastSavedTradeId] = useState(() => readLastSavedTradeId());
   const [debugReportText, setDebugReportText] = useState("");
@@ -1255,6 +1258,10 @@ export default function Journal() {
     const maxPage = Math.max(0, Math.ceil(trades.length / JOURNAL_PAGE_SIZE) - 1);
     if (page > maxPage) setPage(maxPage);
   }, [page, trades.length]);
+
+  useEffect(() => {
+    setSelectedTradeIds(prev => prev.filter(id => trades.some(trade => String(trade.id) === String(id))));
+  }, [trades]);
 
   const saveTrade = useCallback(async (trade) => {
     const normalized = normalizeTrade(trade);
@@ -1694,7 +1701,48 @@ export default function Journal() {
     setShowModal(true);
   }, []);
 
+  const deleteSelectedTrades = useCallback(async (ids) => {
+    const targetIds = Array.from(new Set((ids || selectedTradeIds).map(id => String(id || "").trim()).filter(Boolean)));
+    if (targetIds.length === 0) return;
+    if (!window.confirm(`Delete ${targetIds.length} trade(s)? This cannot be undone.`)) return;
+
+    setDeletingTrades(true);
+    setSaveNotice(null);
+    try {
+      const idSet = new Set(targetIds);
+      await deleteJournalTrades(targetIds);
+      const remainingTrades = tradesRef.current.filter(trade => !idSet.has(String(trade.id)));
+      suppressNextSaveRef.current = true;
+      tradesRef.current = remainingTrades;
+      setTrades(remainingTrades);
+      setSelectedTradeIds([]);
+
+      if (storageMode === "supabase" || storageStatus?.signedIn === true) {
+        const reloadResult = await loadJournalTradesFromStorage();
+        const reloadedTrades = (reloadResult.trades || []).map((trade, index) => normalizeTrade(trade, index));
+        suppressNextSaveRef.current = true;
+        tradesRef.current = reloadedTrades;
+        setTrades(reloadedTrades);
+        setStorageMode(reloadResult.mode);
+        setStorageStatus(reloadResult);
+      }
+
+      setSaveNotice({
+        type: "success",
+        message: `Deleted ${targetIds.length} trade(s).`,
+      });
+    } catch (error) {
+      setSaveNotice({
+        type: "error",
+        message: `Delete failed. ${String(error?.message || error || "Please try again.")}`,
+      });
+    } finally {
+      setDeletingTrades(false);
+    }
+  }, [selectedTradeIds, storageMode, storageStatus]);
+
   const deleteTrade = useCallback((id) => {
+    setSelectedTradeIds(prev => prev.filter(selectedId => String(selectedId) !== String(id)));
     setTrades(prev => prev.filter(t => t.id !== id));
     deleteJournalTradeFromStorage(id).then((result) => {
       setStorageMode(result.mode);
@@ -1937,6 +1985,29 @@ export default function Journal() {
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / JOURNAL_PAGE_SIZE));
   const visibleTrades = sorted.slice(page * JOURNAL_PAGE_SIZE, (page + 1) * JOURNAL_PAGE_SIZE);
+  const selectedTradeIdSet = useMemo(() => new Set(selectedTradeIds.map(String)), [selectedTradeIds]);
+  const visibleTradeIds = visibleTrades.map(trade => String(trade.id));
+  const visibleSelectedCount = visibleTradeIds.filter(id => selectedTradeIdSet.has(id)).length;
+  const allVisibleSelected = visibleTradeIds.length > 0 && visibleSelectedCount === visibleTradeIds.length;
+  const toggleTradeSelected = (id, checked) => {
+    const normalizedId = String(id || "");
+    setSelectedTradeIds(prev => {
+      const next = new Set(prev.map(String));
+      if (checked) next.add(normalizedId);
+      else next.delete(normalizedId);
+      return Array.from(next);
+    });
+  };
+  const toggleAllVisibleTrades = (checked) => {
+    setSelectedTradeIds(prev => {
+      const next = new Set(prev.map(String));
+      visibleTradeIds.forEach(id => {
+        if (checked) next.add(id);
+        else next.delete(id);
+      });
+      return Array.from(next);
+    });
+  };
   const filtersActive = false;
   const debugReport = useMemo(() => buildJournalDebugReport({
     status: storageStatus,
@@ -2131,9 +2202,9 @@ export default function Journal() {
               marginTop: 8,
               padding: "8px 10px",
               borderRadius: 4,
-              border: saveNotice.type === "success" ? "1px solid rgba(0,255,135,0.22)" : "1px solid rgba(255,184,77,0.28)",
-              background: saveNotice.type === "success" ? "rgba(0,255,135,0.06)" : "rgba(255,184,77,0.08)",
-              color: saveNotice.type === "success" ? "#00FF87" : "#FFB84D",
+              border: saveNotice.type === "success" ? "1px solid rgba(0,255,135,0.22)" : saveNotice.type === "error" ? "1px solid rgba(255,59,59,0.28)" : "1px solid rgba(255,184,77,0.28)",
+              background: saveNotice.type === "success" ? "rgba(0,255,135,0.06)" : saveNotice.type === "error" ? "rgba(255,59,59,0.08)" : "rgba(255,184,77,0.08)",
+              color: saveNotice.type === "success" ? "#00FF87" : saveNotice.type === "error" ? "#FF6B6B" : "#FFB84D",
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: "0.68rem",
               lineHeight: 1.5,
@@ -2422,9 +2493,37 @@ export default function Journal() {
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.68rem",
+              color: selectedTradeIds.length > 0 ? "#C8F135" : "#555566",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}>
+              {selectedTradeIds.length} selected
+            </div>
+            <button
+              type="button"
+              onClick={() => deleteSelectedTrades(selectedTradeIds)}
+              disabled={selectedTradeIds.length === 0 || deletingTrades || loadingJournal || savingTrade}
+              style={paginationButtonStyle(selectedTradeIds.length === 0 || deletingTrades || loadingJournal || savingTrade)}
+            >
+              {deletingTrades ? "Deleting..." : `Delete selected (${selectedTradeIds.length})`}
+            </button>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1120 }}>
             <thead>
               <tr>
+                <Th>
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    disabled={visibleTrades.length === 0 || deletingTrades}
+                    onChange={event => toggleAllVisibleTrades(event.target.checked)}
+                    aria-label="Select all visible trades"
+                  />
+                </Th>
                 <Th>#</Th>
                 <Th sortable onClick={() => toggleSort("date")}>Date{sortArrow("date")}</Th>
                 <Th sortable onClick={() => toggleSort("symbol")}>Symbol{sortArrow("symbol")}</Th>
@@ -2444,6 +2543,15 @@ export default function Journal() {
                 <tr key={t.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.02)" }}
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(200,241,53,0.02)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <Td>
+                    <input
+                      type="checkbox"
+                      checked={selectedTradeIdSet.has(String(t.id))}
+                      disabled={deletingTrades}
+                      onChange={event => toggleTradeSelected(t.id, event.target.checked)}
+                      aria-label={`Select trade ${t.symbol}`}
+                    />
+                  </Td>
                   <Td style={{ color: "#333344" }}>{page * JOURNAL_PAGE_SIZE + i + 1}</Td>
                   <Td>{t.date}</Td>
                   <Td style={{ fontWeight: 700, color: "#e5e5e5" }}>{t.symbol}</Td>
@@ -2504,6 +2612,7 @@ export default function Journal() {
               ))}
               {/* Totals Row */}
               <tr style={{ borderTop: "1px solid rgba(200,241,53,0.1)", background: "rgba(200,241,53,0.02)" }}>
+                <Td></Td>
                 <Td style={{ fontWeight: 700, color: "#C8F135", fontFamily: "'Bebas Neue', sans-serif", fontSize: "1rem" }}>TOTAL</Td>
                 <Td colSpan={6}></Td>
                 <Td align="right" style={{ fontWeight: 700, color: totalPnl >= 0 ? "#00FF87" : "#FF3B3B" }}>

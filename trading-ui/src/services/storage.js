@@ -2,7 +2,6 @@ export const STORAGE_KEYS = {
   journal: "bullcast_journal_v1",
   traderProfile: "bullcast_trader_profile_v1",
   analysisHistory: "bullcast_analysis_history_v1",
-  backtestResults: "bullcast_backtest_results_v1",
 }
 
 export function readStorage(key, fallback) {

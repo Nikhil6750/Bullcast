@@ -1046,6 +1046,31 @@ export async function deleteJournalTradeFromStorage(id) {
   }
 }
 
+export async function deleteJournalTrades(tradeIds) {
+  const ids = Array.from(new Set(safeArray(tradeIds).map(id => String(id || '').trim()).filter(Boolean)))
+  if (ids.length === 0) return
+
+  const client = getSupabaseClient()
+  if (!client) return
+
+  const session = await getCurrentSupabaseSession()
+  const userId = session?.user?.id
+  if (!userId) return
+
+  const candidateIds = Array.from(new Set(ids.flatMap(id => [
+    createJournalTradeId(id),
+    createJournalTradeId(`${userId}|${id}`),
+  ])))
+
+  const { error } = await client
+    .from('journal_trades')
+    .delete()
+    .in('id', candidateIds)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
 export async function saveTraderProfileToStorage(profile) {
   const localSaved = writeStorage(STORAGE_KEYS.traderProfile, profile)
   const client = getSupabaseClient()

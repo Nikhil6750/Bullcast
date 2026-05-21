@@ -1,5 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
+:root {
+  --tv-bg:           #0d1117;
+  --tv-surface:      #161b22;
+  --tv-border:       #30363d;
+  --tv-text:         #c9d1d9;
+  --tv-muted:        #8b949e;
+  --tv-green:        #26a641;
+  --tv-red:          #da3633;
+  --tv-blue:         #58a6ff;
+  --tv-orange:       #f0883e;
+}
+
 *,
 *::before,
 *::after {
