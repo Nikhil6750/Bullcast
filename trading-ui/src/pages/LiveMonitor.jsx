@@ -3,33 +3,15 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { createChart, LineStyle } from "lightweight-charts";
 import { getAlertsLog, getLiveScan, getBacktestCandles } from "../services/api";
 
-const FOREX_PAIRS = [
-  "EURUSD",
-  "GBPUSD",
-  "USDJPY",
-  "USDCHF",
-  "AUDUSD",
-  "NZDUSD",
-  "USDCAD",
-  "GBPJPY",
-  "EURJPY",
-  "EURGBP",
-  "AUDJPY",
-  "GBPAUD",
-  "EURAUD",
-  "GBPCAD",
-  "AUDCAD",
-  "NZDJPY",
-  "CHFJPY",
-  "EURCAD",
-  "AUDCHF",
-  "EURCHF",
+const PAIRS = [
+  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "NZDUSD", "USDCAD",
+  "GBPJPY", "EURJPY", "EURGBP", "AUDJPY", "GBPAUD", "EURAUD", "GBPCAD",
+  "AUDCAD", "NZDJPY", "CHFJPY", "EURCAD", "AUDCHF", "EURCHF", "GBPCHF",
+  "GBPNZD", "EURNZD", "AUDNZD", "NZDCAD", "NZDCHF", "CADJPY", "CADCHF",
 ];
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const REQUEST_STAGGER_MS = 2 * 1000;
-const PENDING_SIGNAL_DELAY_MS = 7 * 60 * 1000;
-const PENDING_SIGNAL_CHECK_MS = 30 * 1000;
 const LIVE_SIGNALS_STORAGE_KEY = "bullcast_live_signals";
 
 function msUntilNext5mBoundary() {
@@ -37,7 +19,7 @@ function msUntilNext5mBoundary() {
   return (5 - (now.getMinutes() % 5)) * 60000
     - now.getSeconds() * 1000
     - now.getMilliseconds()
-    + 15000;
+    + 120000;
 }
 
 function sleep(ms) {
@@ -72,6 +54,13 @@ function formatPatternTime(timestamp) {
   const value = Number(timestamp);
   if (!Number.isFinite(value)) return "--:--:--";
   return formatClockIST(new Date(value * 1000));
+}
+
+function formatShownAt(value) {
+  if (!value) return "--";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return `${formatClockIST(date)} IST`;
 }
 
 function formatCountdown(ms) {
@@ -118,7 +107,7 @@ function sortByAlertTimeDesc(items) {
 
 function storedSignalsFromRowsByPair(rowsByPair) {
   const source = rowsByPair && typeof rowsByPair === "object" ? rowsByPair : {};
-  return FOREX_PAIRS.reduce((signals, pair) => {
+  return PAIRS.reduce((signals, pair) => {
     const value = source[pair];
     const pairRows = Array.isArray(value) ? value : value ? [value] : [];
     const latest = sortByAlertTimeDesc(pairRows.filter(Boolean))[0];
@@ -132,7 +121,7 @@ function storedSignalsFromRowsByPair(rowsByPair) {
 function rowsByPairFromStoredSignals(signals) {
   if (!signals || typeof signals !== "object" || Array.isArray(signals)) return {};
 
-  return FOREX_PAIRS.reduce((rowsByPair, pair) => {
+  return PAIRS.reduce((rowsByPair, pair) => {
     const value = signals[pair];
     const pairRows = Array.isArray(value) ? value : value ? [value] : [];
     const latest = sortByAlertTimeDesc(pairRows.filter(Boolean))[0];
@@ -169,11 +158,6 @@ function saveStoredLiveSignals(rowsByPair) {
   } catch {
     // Ignore storage failures so scanning still works in restricted browsers.
   }
-}
-
-function stripDetectedAt(signal) {
-  const { detectedAt, ...row } = signal;
-  return row;
 }
 
 function ResultBadge({ result }) {
@@ -276,7 +260,6 @@ export default function LiveMonitor() {
   const [activeTab, setActiveTab] = useState("live");
   const [expandedId, setExpandedId] = useState(null);
   const [rowsByPair, setRowsByPair] = useState(loadStoredLiveSignals);
-  const [pendingSignals, setPendingSignals] = useState({});
   const [historyRows, setHistoryRows] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
@@ -288,14 +271,13 @@ export default function LiveMonitor() {
     running: false,
     pair: "",
     index: 0,
-    total: FOREX_PAIRS.length,
+    total: PAIRS.length,
   });
   const scanTokenRef = useRef(0);
   const boundaryTimeoutRef = useRef(null);
   const intervalRef = useRef(null);
   const startScanRef = useRef(null);
   const rowsByPairRef = useRef({});
-  const pendingSignalsRef = useRef({});
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -323,18 +305,18 @@ export default function LiveMonitor() {
       running: true,
       pair: "",
       index: 0,
-      total: FOREX_PAIRS.length,
+      total: PAIRS.length,
     });
 
-    for (let index = 0; index < FOREX_PAIRS.length; index += 1) {
+    for (let index = 0; index < PAIRS.length; index += 1) {
       if (scanTokenRef.current !== token) return;
 
-      const pair = FOREX_PAIRS[index];
+      const pair = PAIRS[index];
       setScanState({
         running: true,
         pair,
         index: index + 1,
-        total: FOREX_PAIRS.length,
+        total: PAIRS.length,
       });
 
       try {
@@ -343,45 +325,16 @@ export default function LiveMonitor() {
         if (scanTokenRef.current !== token) return;
         const latest = sortByAlertTimeDesc(nextRows)[0];
 
-        if (latest) {
-          setPendingSignals((current) => {
-            const displayed = rowsByPairRef.current[pair]?.[0];
-            if (String(displayed?.alert_timestamp) === String(latest.alert_timestamp)) {
-              if (!current[pair]) return current;
-              const next = { ...current };
-              delete next[pair];
-              return next;
-            }
-
-            const existing = current[pair];
-            const detectedAt = String(existing?.alert_timestamp) === String(latest.alert_timestamp)
-              ? existing.detectedAt
-              : Date.now();
-
-            return {
-              ...current,
-              [pair]: {
-                ...latest,
-                detectedAt,
-              },
-            };
-          });
-        } else {
-          setPendingSignals((current) => {
-            if (!current[pair]) return current;
-            const next = { ...current };
-            delete next[pair];
-            return next;
-          });
-          setRowsByPair((current) => {
-            const next = {
-              ...current,
-              [pair]: [],
-            };
-            saveStoredLiveSignals(next);
-            return next;
-          });
-        }
+        setRowsByPair((current) => {
+          const existing = current[pair]?.[0];
+          const sameAlert = String(existing?.alert_timestamp) === String(latest?.alert_timestamp);
+          const next = {
+            ...current,
+            [pair]: latest ? [{ ...latest, shownAt: sameAlert ? existing.shownAt : new Date() }] : [],
+          };
+          saveStoredLiveSignals(next);
+          return next;
+        });
       } catch (error) {
         if (scanTokenRef.current !== token) return;
         setPairErrors((current) => ({
@@ -390,7 +343,7 @@ export default function LiveMonitor() {
         }));
       }
 
-      if (index < FOREX_PAIRS.length - 1) {
+      if (index < PAIRS.length - 1) {
         await sleep(REQUEST_STAGGER_MS);
       }
     }
@@ -453,7 +406,7 @@ export default function LiveMonitor() {
       running: false,
       pair: "",
       index: 0,
-      total: FOREX_PAIRS.length,
+      total: PAIRS.length,
     });
   }, []);
 
@@ -461,39 +414,9 @@ export default function LiveMonitor() {
     startScanRef.current = startScan;
   }, [startScan]);
 
-  const revealPendingSignals = useCallback(() => {
-    const nowMs = Date.now();
-    const dueEntries = Object.entries(pendingSignalsRef.current)
-      .filter(([, signal]) => nowMs - Number(signal.detectedAt || 0) >= PENDING_SIGNAL_DELAY_MS);
-
-    if (dueEntries.length === 0) return;
-
-    const duePairs = new Set(dueEntries.map(([pair]) => pair));
-    setPendingSignals((current) => {
-      const next = { ...current };
-      for (const pair of duePairs) {
-        delete next[pair];
-      }
-      return next;
-    });
-
-    setRowsByPair((current) => {
-      const next = { ...current };
-      for (const [pair, signal] of dueEntries) {
-        next[pair] = [stripDetectedAt(signal)];
-      }
-      saveStoredLiveSignals(next);
-      return next;
-    });
-  }, []);
-
   useEffect(() => {
     rowsByPairRef.current = rowsByPair;
   }, [rowsByPair]);
-
-  useEffect(() => {
-    pendingSignalsRef.current = pendingSignals;
-  }, [pendingSignals]);
 
   useEffect(() => {
     startScan();
@@ -522,11 +445,6 @@ export default function LiveMonitor() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(revealPendingSignals, PENDING_SIGNAL_CHECK_MS);
-    return () => window.clearInterval(timer);
-  }, [revealPendingSignals]);
-
-  useEffect(() => {
     if (activeTab === "history") {
       loadHistory();
     }
@@ -541,20 +459,6 @@ export default function LiveMonitor() {
     [historyRows]
   );
   const displayedRows = activeTab === "history" ? sortedHistoryRows : rows;
-  const pendingIndicators = useMemo(
-    () => FOREX_PAIRS
-      .map((pair) => {
-        const signal = pendingSignals[pair];
-        if (!signal) return null;
-
-        return {
-          pair,
-          countdown: formatCountdown(PENDING_SIGNAL_DELAY_MS - (now - Number(signal.detectedAt || now))),
-        };
-      })
-      .filter(Boolean),
-    [pendingSignals, now]
-  );
 
   const errorCount = Object.keys(pairErrors).length;
   const countdown = formatCountdown(nextRefreshAt - now);
@@ -588,15 +492,6 @@ export default function LiveMonitor() {
           )}
           {errorCount > 0 && (
             <span className="text-[#FF5370]">{errorCount} pair{errorCount === 1 ? "" : "s"} failed</span>
-          )}
-          {pendingIndicators.length > 0 && (
-            <span className="flex flex-wrap items-center gap-2 text-[#FFB84D]">
-              {pendingIndicators.map(({ pair, countdown: pendingCountdown }) => (
-                <span key={pair} className="inline-flex items-center gap-1">
-                  {pair} ⏳ {pendingCountdown}
-                </span>
-              ))}
-            </span>
           )}
         </div>
 
@@ -658,10 +553,11 @@ export default function LiveMonitor() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[880px] border-collapse text-left text-sm">
             <thead className="bg-white/[0.03] text-xs uppercase text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">Shown At</th>
                 <th className="px-4 py-3">Pair</th>
                 <th className="px-4 py-3">Direction</th>
                 <th className="px-4 py-3 text-right">Target</th>
@@ -690,6 +586,7 @@ export default function LiveMonitor() {
                       onClick={() => hasChart && setExpandedId(isExpanded ? null : row.monitorId)}
                     >
                       <td className="px-4 py-3 font-mono text-neutral-200">{formatPatternTime(row.alert_timestamp)}</td>
+                      <td className="px-4 py-3 font-mono text-neutral-300">{formatShownAt(row.shownAt)}</td>
                       <td className="px-4 py-3 font-mono font-semibold text-white">{row.pair}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex min-w-[72px] justify-center rounded-md border px-2.5 py-1 text-xs font-semibold ${directionTone}`}>
@@ -701,7 +598,7 @@ export default function LiveMonitor() {
                     </tr>
                     {isExpanded && hasChart && (
                       <tr>
-                        <td colSpan={5} className="border-t border-white/5 bg-[#07070f] px-4 pb-4 pt-2">
+                        <td colSpan={6} className="border-t border-white/5 bg-[#07070f] px-4 pb-4 pt-2">
                           <CandleChart pattern={row} />
                         </td>
                       </tr>

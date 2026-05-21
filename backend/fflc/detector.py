@@ -221,6 +221,118 @@ def _build_pattern_from_state(
     }
 
 
+def apply_strategy(candles: list[dict], pair: str) -> dict | None:
+    streak = 0
+    streak_bullish = None
+    streak_open = None
+    opposite_count = 0
+    waiting_for_confirmation = False
+    latest_alert_index = -1
+    latest_bullish_streak = None
+    opposite_count_at_alert = 0
+
+    for i, candle in enumerate(candles):
+        is_green = float(candle["close"]) > float(candle["open"])
+        this_bullish = is_green
+
+        if not waiting_for_confirmation:
+            if streak == 0:
+                streak = 1
+                streak_bullish = this_bullish
+                streak_open = float(candle["open"])
+            elif this_bullish == streak_bullish:
+                streak += 1
+                streak_open = float(candle["open"])
+            else:
+                if streak >= 4:
+                    waiting_for_confirmation = True
+                    opposite_count = 1
+                    if (streak_bullish and float(candle["low"]) <= streak_open) or (
+                        not streak_bullish and float(candle["high"]) >= streak_open
+                    ):
+                        streak = 1
+                        streak_bullish = this_bullish
+                        streak_open = float(candle["open"])
+                        waiting_for_confirmation = False
+                        opposite_count = 0
+                else:
+                    streak = 1
+                    streak_bullish = this_bullish
+                    streak_open = float(candle["open"])
+        else:
+            if this_bullish != streak_bullish:
+                opposite_count += 1
+                if opposite_count > 2:
+                    streak = 1
+                    streak_bullish = this_bullish
+                    streak_open = float(candle["open"])
+                    waiting_for_confirmation = False
+                    opposite_count = 0
+            else:
+                if opposite_count == 2:
+                    if (streak_bullish and float(candle["low"]) <= streak_open) or (
+                        not streak_bullish and float(candle["high"]) >= streak_open
+                    ):
+                        streak = 1
+                        streak_bullish = this_bullish
+                        streak_open = float(candle["open"])
+                        waiting_for_confirmation = False
+                        opposite_count = 0
+                    else:
+                        latest_alert_index = i
+                        latest_bullish_streak = streak_bullish
+                        opposite_count_at_alert = opposite_count
+                        streak = 1
+                        streak_bullish = this_bullish
+                        streak_open = float(candle["open"])
+                        waiting_for_confirmation = False
+                        opposite_count = 0
+                elif opposite_count == 1:
+                    latest_alert_index = i
+                    latest_bullish_streak = streak_bullish
+                    opposite_count_at_alert = opposite_count
+                    streak = 1
+                    streak_bullish = this_bullish
+                    streak_open = float(candle["open"])
+                    waiting_for_confirmation = False
+                    opposite_count = 0
+
+    if latest_alert_index == -1 or latest_alert_index < 4:
+        return None
+
+    alert_candle = candles[latest_alert_index]
+    five_candles = candles[latest_alert_index - 4 : latest_alert_index + 1]
+    c1, c2, c3 = five_candles[0], five_candles[1], five_candles[2]
+    pullback_candles = [five_candles[3]]
+    if latest_alert_index >= 5 and opposite_count_at_alert == 2:
+        pullback_candles = [five_candles[2], five_candles[3]]
+
+    direction = "UP" if latest_bullish_streak else "DOWN"
+    target_data = calculate_target(c1, c2, c3, pullback_candles, direction)
+    clean_pair = str(pair or "").upper().replace("/", "")
+    alert_ts = int(alert_candle["time"])
+
+    return {
+        "id": f"{clean_pair}-{alert_ts}-{direction}",
+        "pair": clean_pair,
+        "direction": direction,
+        "c1": c1,
+        "c2": c2,
+        "c3": c3,
+        "pullback_candles": pullback_candles,
+        "alert_candle": alert_candle,
+        "alert_candle_index": latest_alert_index,
+        "alert_timestamp": alert_ts,
+        "target": target_data["target"],
+        "zone_upper": target_data["zone_upper"],
+        "zone_lower": target_data["zone_lower"],
+        "target_method": target_data["target_method"],
+        "pullback_type": target_data["pullback_type"],
+        "result": "pending",
+        "reason": "Live alert",
+    }
+
+
 def detect_patterns(candles: list[dict], pair: str) -> list[dict]:
     if len(candles) < 6:
         return []

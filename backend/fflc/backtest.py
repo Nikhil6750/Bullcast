@@ -15,10 +15,10 @@ TARGET_DAY_START = time(0, 0)
 TARGET_DAY_END = time(23, 59, 59)
 DETECTION_LOOKBACK_DAYS = 1
 SUPPORTED_PAIRS = [
-    "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "USDCAD",
-    "AUDUSD", "EURJPY", "GBPJPY", "CHFJPY", "CADJPY",
-    "AUDJPY", "EURAUD", "GBPAUD", "EURGBP", "EURCAD",
-    "GBPCAD", "GBPCHF", "EURCHF", "AUDCHF", "AUDCAD",
+    "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "NZDUSD", "USDCAD",
+    "GBPJPY", "EURJPY", "EURGBP", "AUDJPY", "GBPAUD", "EURAUD", "GBPCAD",
+    "AUDCAD", "NZDJPY", "CHFJPY", "EURCAD", "AUDCHF", "EURCHF", "GBPCHF",
+    "GBPNZD", "EURNZD", "AUDNZD", "NZDCAD", "NZDCHF", "CADJPY", "CADCHF",
 ]
 SUPPORTED_PAIR_SET = set(SUPPORTED_PAIRS)
 
@@ -168,24 +168,73 @@ def get_latest_pattern(pair, date_str=None):
     if clean_pair not in SUPPORTED_PAIR_SET:
         raise ValueError(f"Unsupported pair: {clean_pair}")
 
-    target_date = _parse_date(date_str)
-    session_candles, _ = _get_session_candles(clean_pair, target_date, limit=100)
-    if len(session_candles) < 4:
+    candles = fetch_candles(clean_pair, limit=100)
+    if len(candles) < 5:
         return None
 
-    target_start, target_end = _target_day_bounds(target_date)
-    target_start_ts = int(target_start.timestamp())
-    target_end_ts = int(target_end.timestamp())
-    patterns = _filter_patterns_by_alert_window(
-        detect_patterns(session_candles, clean_pair),
-        target_start_ts,
-        target_end_ts,
-    )
-    if not patterns:
+    streak=0; streak_bullish=None; streak_open=0.0
+    opposite_count=0; waiting=False
+    latest_i=-1; latest_bullish=None
+
+    for i, candle in enumerate(candles):
+        is_green = float(candle['close']) > float(candle['open'])
+        if not waiting:
+            if streak==0:
+                streak=1; streak_bullish=is_green; streak_open=float(candle['open'])
+            elif is_green==streak_bullish:
+                streak+=1; streak_open=float(candle['open'])
+            else:
+                if streak>=4:
+                    waiting=True; opposite_count=1
+                    if (streak_bullish and float(candle['low'])<=streak_open) or \
+                       (not streak_bullish and float(candle['high'])>=streak_open):
+                        streak=1; streak_bullish=is_green
+                        streak_open=float(candle['open'])
+                        waiting=False; opposite_count=0
+                else:
+                    streak=1; streak_bullish=is_green; streak_open=float(candle['open'])
+        else:
+            if is_green!=streak_bullish:
+                opposite_count+=1
+                if opposite_count>2:
+                    streak=1; streak_bullish=is_green
+                    streak_open=float(candle['open'])
+                    waiting=False; opposite_count=0
+            else:
+                if opposite_count==2:
+                    if (streak_bullish and float(candle['low'])<=streak_open) or \
+                       (not streak_bullish and float(candle['high'])>=streak_open):
+                        streak=1; streak_bullish=is_green
+                        streak_open=float(candle['open'])
+                        waiting=False; opposite_count=0
+                    else:
+                        latest_i=i; latest_bullish=streak_bullish
+                        streak=1; streak_bullish=is_green
+                        streak_open=float(candle['open'])
+                        waiting=False; opposite_count=0
+                elif opposite_count==1:
+                    latest_i=i; latest_bullish=streak_bullish
+                    streak=1; streak_bullish=is_green
+                    streak_open=float(candle['open'])
+                    waiting=False; opposite_count=0
+
+    if latest_i<4:
         return None
 
-    latest = max(patterns, key=lambda pattern: int(pattern["alert_timestamp"]))
-    latest["result"] = "pending"
-    latest["reason"] = latest.get("reason") or "Latest live alert"
-    latest["win_count"] = 0
-    return latest
+    c4=candles[latest_i-1]
+    direction="UP" if latest_bullish else "DOWN"
+    target=float(c4['high']) if direction=="DOWN" else float(c4['low'])
+    from backend.fflc.target import ZONE_TOLERANCE
+    alert_ts=int(candles[latest_i]['time'])
+    return {
+        "pair":clean_pair,"direction":direction,
+        "c1":candles[latest_i-4],"c2":candles[latest_i-3],
+        "c3":candles[latest_i-2],"pullback_candles":[c4],
+        "alert_candle":candles[latest_i],"alert_timestamp":alert_ts,
+        "target":target,
+        "zone_upper":target+(target*ZONE_TOLERANCE),
+        "zone_lower":target-(target*ZONE_TOLERANCE),
+        "pullback_type":"simple",
+        "target_method":"c4_high" if direction=="DOWN" else "c4_low",
+        "result":"pending","reason":"Live alert"
+    }
